@@ -3,55 +3,40 @@ const { Queries } = require('../db/queries.js');
 const filtrationData = require('../utils/createFilterData.js');
 
 class filtrationController {
-  parseParams(req, res) {
+  async parseParams(req, res) {
     try {
       const { url } = req.params;
       const { brands } = req.body;
 
       let q = Queries.getFiltredProductsByManufacturerAndCategory;
 
-      if (brands.length) {
-        q += ` AND p.manufacturer_id IN(${brands.join(', ')})`;
-      }
+      if (brands.length) q += ` AND p.manufacturer_id IN(${brands.join(', ')})`;
 
-      pool.getConnection((error, connection) => {
-        connection.query(q, [url], (err, data) => {
-          if (err) throw err;
-          else {
-            const filtredByManufacturerAndCategoryData =
-              filtrationData.formatData(data);
+      const [rows, filds] = await pool.query(q, [url]);
 
-            const filtratredByParams = filtrationData.filtrationByParams(
-              filtredByManufacturerAndCategoryData,
-              req.body.filter_params
-            );
+      const filtredByManufacturerAndCategoryData =
+        filtrationData.formatData(rows);
 
-            const filtratedProducts = filtrationData.filtrationdByPrice(
-              filtratredByParams,
-              req.body.min_price,
-              req.body.max_price,
-              req.body.currency
-            );
+      const filtratredByParams = filtrationData.filtrationByParams(
+        filtredByManufacturerAndCategoryData,
+        req.body.filter_params
+      );
 
-            if (!filtratedProducts.length) {
-              return res.status(200).json([]);
-            }
+      const filtratedProducts = filtrationData.filtrationdByPrice(
+        filtratredByParams,
+        req.body.min_price,
+        req.body.max_price,
+        req.body.currency
+      );
 
-            connection.query(
-              Queries.getProductsByIds +
-                `AND pl.product_id IN(${filtratedProducts
-                  .map((el) => el.id)
-                  .join(', ')})`,
-              (err, data) => {
-                if (err) throw err;
-                else return res.status(200).json(data);
-              }
-            );
-          }
-        });
+      const [rows2, filds2] = await pool.query(
+        Queries.getProductsByIds +
+          `AND pl.product_id IN(${filtratedProducts
+            .map((el) => el.id)
+            .join(', ')})`
+      );
 
-        connection.release();
-      });
+      return res.status(200).json(rows2);
     } catch (error) {
       console.log(error);
     }

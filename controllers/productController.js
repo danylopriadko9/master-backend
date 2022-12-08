@@ -6,155 +6,103 @@ const { readdir } = require('fs').promises;
 const date = require('date-and-time');
 
 class productController {
-  getProductById(req, res) {
+  async getProductById(req, res) {
     try {
-      const id = req.params.id;
-      pool.getConnection((err, connection) => {
-        const q = Queries.getOneProduct + `AND pl.product_id = ?`;
-        connection.query(q, [id], (err, data) => {
-          if (err) throw err;
-          else return res.status(200).json(data);
-        });
-        connection.release();
-      });
+      const [rows, filds] = await pool.query(
+        Queries.getOneProduct + `AND pl.product_id = ?`,
+        [req.params.id]
+      );
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
   }
 
-  getProductsPropertiesProductsId(req, res) {
+  async getProductsPropertiesProductsId(req, res) {
     try {
-      const id = req.params.id;
       const q = `SELECT distinct relation_product_id AS product_id FROM product_rel_product prp WHERE prp.product_id = ?`;
-      pool.getConnection((err, connection) => {
-        connection.query(q, [id], (err, data) => {
-          if (err) throw err;
-          else return res.status(200).json(data);
-        });
-        connection.release();
-      });
+      const [rows, filds] = await pool.query(q, [req.params.id]);
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
   }
 
-  getProductsWithDiscount(req, res) {
+  async getProductsWithDiscount(req, res) {
     try {
-      pool.getConnection((error, connection) => {
-        connection.query(Queries.getProductsWithDiscount, (err, data) => {
-          if (err) throw err;
-          else return res.status(200).json(data);
-        });
-        connection.release();
-      });
+      const [rows, filds] = await pool.query(Queries.getProductsWithDiscount);
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
   }
 
-  getNewProducts(req, res) {
+  async getNewProducts(req, res) {
     try {
-      pool.getConnection((error, connection) => {
-        connection.query(Queries.getNewProducts, (err, data) => {
-          if (err) throw err;
-          return res.status(200).json(data);
-        });
-        connection.release();
-      });
+      const [rows, filds] = await pool.query(Queries.getNewProducts);
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
   }
 
-  getOneProductByUrl(req, res) {
+  async getOneProductByUrl(req, res) {
     try {
       const url = req.params.url.replace('tovar_', '');
-      pool.getConnection((err, connection) => {
-        const q = Queries.getOneProduct + `AND pl.url = ?`;
-        connection.query(q, [url], (err, data) => {
-          if (err) throw err;
-          else return res.status(200).json(data);
-        });
-        connection.release();
-      });
+
+      const [rows, filds] = await pool.query(
+        Queries.getOneProduct + `AND pl.url = ?`,
+        [url]
+      );
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
   }
 
-  getProductsByIds(req, res) {
+  async getProductsByIds(req, res) {
     try {
       const { ids } = req.body;
-      pool.getConnection((error, connection) => {
-        connection.query(
-          Queries.getProductsByIds +
-            `AND pl.product_id IN(${Array.from(ids).join(', ')})`,
-          (err, data) => {
-            if (err) throw err;
-            else return res.status(200).json(data);
-          }
-        );
-        connection.release();
-      });
+      const [rows, filds] = await pool.query(
+        Queries.getProductsByIds +
+          `AND pl.product_id IN(${Array.from(ids).join(', ')})`
+      );
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
   }
 
-  getProductCharacteristicsById(req, res) {
+  async getProductCharacteristicsById(req, res) {
     try {
-      const { id } = req.params;
-
-      pool.getConnection((error, connection) => {
-        connection.query(
-          Queries.getProductCharacteristicsById,
-          [id],
-          (err, data) => {
-            if (err) throw err;
-            else return res.status(200).json(data);
-          }
-        );
-
-        connection.release();
-      });
-    } catch (error) {
-      consolr.log(error);
-    }
-  }
-
-  getProductsPropertiesProducts(req, res) {
-    try {
-      const { id } = req.params;
-
-      pool.getConnection((error, connection) => {
-        connection.query(
-          Queries.getProductsPropertiesProducts + `AND prp.product_id IN(?)`,
-          [id],
-          (err, data) => {
-            if (err) throw err;
-            else return res.status(200).json(data);
-          }
-        );
-
-        connection.release();
-      });
+      const [rows, filds] = await pool.query(
+        Queries.getProductCharacteristicsById,
+        [req.params.id]
+      );
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
   }
 
-  getAllProductPhotosById(req, res) {
+  async getProductsPropertiesProducts(req, res) {
     try {
-      const { id } = req.params;
+      const [rows, filds] = await pool.query(
+        Queries.getProductsPropertiesProducts + `AND prp.product_id IN(?)`,
+        [req.params.id]
+      );
+      return res.status(200).json(rows);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-      pool.getConnection((error, connection) => {
-        connection.query(Queries.getAllProductPhotosById, [id], (err, data) => {
-          if (err) throw err;
-          else return res.status(200).json(data);
-        });
-
-        connection.release();
-      });
+  async getAllProductPhotosById(req, res) {
+    try {
+      const [rows, filds] = await pool.query(Queries.getAllProductPhotosById, [
+        req.params.id,
+      ]);
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
@@ -172,50 +120,40 @@ class productController {
     }
   }
 
-  getCompareProductCharacteristicsValuesById(req, res) {
+  async getCompareProductCharacteristicsValuesById(req, res) {
     try {
-      pool.getConnection((error, connection) => {
-        connection.query(
-          Queries.getCompareProductCharacteristicsValuesById,
-          [req.params.id],
-          (err, data) => {
-            if (err) throw err;
-            else
-              return res.status(200).json({
-                [req.params.id]: data,
-              });
-          }
-        );
-
-        connection.release();
+      const [rows, filds] = await pool.query(
+        Queries.getCompareProductCharacteristicsValuesById,
+        [req.params.id]
+      );
+      return res.status(200).json({
+        [req.params.id]: rows,
       });
     } catch (error) {
       console.log(error);
     }
   }
 
-  getPropertiesCompareProducts(req, res) {
+  async getPropertiesCompareProducts(req, res) {
     try {
       const { data } = req.body;
       if (!data.length) {
-        return res.json([]);
+        return res.status(200).json([]);
       }
-      pool.getConnection((error, connection) => {
-        connection.query(
-          Queries.getProductsPropertiesProducts +
-            ` AND prp.product_id IN(${Array.from(data).join(', ')})`,
-          (err, data) => {
-            if (err) throw err;
-            else return res.status(200).json(data);
-          }
-        );
+
+      const [rows, filds] = await pool.query(
+        Queries.getProductsPropertiesProducts +
+          ` AND prp.product_id IN(${Array.from(data).join(', ')})`
+      );
+      return res.status(200).json({
+        [req.params.id]: rows,
       });
     } catch (error) {
       console.log(error);
     }
   }
 
-  updateProduct(req, res) {
+  async updateProduct(req, res) {
     try {
       const token = req.cookies.access_token;
       if (!token) return res.status(401).json('Not authenticated.');
@@ -238,141 +176,93 @@ class productController {
         product.discount_percent || null,
       ];
 
-      jwt.verify(token, 'jwtkey', (err, userInfo) => {
+      jwt.verify(token, 'jwtkey', async (err, userInfo) => {
         if (err) return res.status(401).json('Token is not valid.');
         if (userInfo.role !== 'admin') res.status(403).json('Access denied');
 
-        pool.getConnection((error, connection) => {
-          connection.query(
-            Queries.updateProductLanguage,
-            [...languageParams, id],
-            (err, data) => {
-              if (err) throw err;
-            }
-          );
+        const now = new Date();
+        const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
 
-          connection.query(
-            Queries.updateProductPrice,
-            [...priceParams, id],
-            (err, data) => {
-              if (err) throw err;
-            }
-          );
+        await pool.query(Queries.updateProductLanguage, [
+          ...languageParams,
+          id,
+        ]);
 
-          const now = new Date();
-          const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
+        await pool.query(Queries.updateProductPrice, [...priceParams, id]);
 
-          connection.query(
-            `UPDATE product p SET t_updated = ? WHERE p.id = ?;`,
-            [formatDate, id],
-            (err, data) => {
-              if (err) throw err;
-            }
-          );
+        await pool.query(`UPDATE product p SET t_updated = ? WHERE p.id = ?;`, [
+          formatDate,
+          id,
+        ]);
 
-          connection.release();
-          return res.status(200);
-        });
+        return res.status(200);
       });
     } catch (error) {
       console.log(error);
     }
   }
 
-  createProduct(req, res) {
+  async createProduct(req, res) {
     try {
       const token = req.cookies.access_token;
       if (!token) return res.status(401).json('Not authenticated.');
 
-      jwt.verify(token, 'jwtkey', (err, userInfo) => {
+      jwt.verify(token, 'jwtkey', async (err, userInfo) => {
         if (err) return res.status(401).json('Token is not valid.');
         if (userInfo.role !== 'admin') res.status(403).json('Access denied');
 
         const product = req.body;
 
-        pool.getConnection((error, connection) => {
-          const now = new Date();
-          const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
+        const now = new Date();
+        const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
 
-          const productParams = [
-            formatDate,
-            formatDate,
-            product.manufacturer_id,
-            product.guarantee,
-          ];
+        const productParams = [
+          formatDate,
+          formatDate,
+          product.manufacturer_id,
+          product.guarantee,
+        ];
 
-          connection.query(
-            Queries.createProduct,
-            [productParams],
-            (err, data) => {
-              if (err) throw err;
-              const { insertId } = data;
+        const [rows, filds] = await pool.query(Queries.createProduct, [
+          productParams,
+        ]);
+        const { insertId } = rows;
 
-              const languageParams = [
-                product.product_name,
-                product.description,
-                product.url,
-                product.meta_title,
-                product.meta_keywords,
-                product.meta_description,
-                insertId,
-              ];
+        const languageParams = [
+          product.product_name,
+          product.description,
+          product.url,
+          product.meta_title,
+          product.meta_keywords,
+          product.meta_description,
+          insertId,
+        ];
 
-              const priceParams = [
-                product.base_price,
-                product.currency_id,
-                product.discount_percent || null,
-                insertId,
-              ];
+        const priceParams = [
+          product.base_price,
+          product.currency_id,
+          product.discount_percent || null,
+          insertId,
+        ];
 
-              connection.query(
-                Queries.createProductLanguage,
-                [languageParams],
-                (err, data) => {
-                  if (err) throw err;
-                  console.log('Languale has been created');
-                }
-              );
+        await pool.query(Queries.createProductLanguage, [languageParams]);
+        await pool.query(Queries.createProductPrice, [priceParams]);
+        await pool.query(Queries.createProductCategory, [
+          insertId,
+          product.category_id,
+        ]);
 
-              connection.query(
-                Queries.createProductPrice,
-                [priceParams],
-                (err, data) => {
-                  if (err) throw err;
-                  console.log('Price has been created');
-                }
-              );
-
-              connection.query(
-                Queries.createProductCategory,
-                [insertId, product.category_id],
-                (err, data) => {
-                  if (err) throw err;
-                  console.log('Product-Category was created');
-                }
-              );
-            }
-          );
-
-          connection.release();
-          return res.status(200);
-        });
+        return res.status(200);
       });
     } catch (error) {
       console.log(error);
     }
   }
 
-  getAllManufacturers(req, res) {
+  async getAllManufacturers(req, res) {
     try {
-      pool.getConnection((error, connection) => {
-        connection.query(Queries.getAllManufacturers, (err, data) => {
-          if (err) throw err;
-          return res.status(200).json(data);
-        });
-
-        connection.release();
-      });
+      const [rows, filds] = await pool.query(Queries.getAllManufacturers);
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }

@@ -2,63 +2,42 @@ const pool = require('../db/config.js');
 const { Queries } = require('../db/queries.js');
 
 class historyController {
-  getHistoryByProductUrl(req, res) {
+  async getHistoryByProductUrl(req, res) {
     try {
-      const { url } = req.params;
+      const [rows, filds] = await pool.query(Queries.getHistoryByProductUrl, [
+        req.params.url,
+      ]);
 
-      pool.getConnection((error, connection) => {
-        connection.query(Queries.getHistoryByProductUrl, [url], (err, data) => {
-          if (err) throw err;
-
-          if (!data.length) {
-            pool.query(
-              Queries.getHistoryProductInParentGroupByUrls,
-              [url],
-              (err, data) => {
-                if (err) throw err;
-                else return res.status(200).json(data);
-              }
-            );
-          } else {
-            return res.status(200).json(data);
-          }
-        });
-
-        connection.release();
-      });
-    } catch (error) {}
-  }
-
-  getHistoryProductInParentGroupByUrls(req, res) {
-    try {
-      const { url } = req.params;
-
-      pool.getConnection((error, connection) => {
-        connection.query(
+      if (!rows.length) {
+        const [rows2, filds2] = await pool.query(
           Queries.getHistoryProductInParentGroupByUrls,
-          [url],
-          (err, data) => {
-            if (err) throw err;
-            else return res.status(200).json(data);
-          }
+          [url]
         );
-
-        connection.release();
-      });
-    } catch (error) {}
+        return res.status(200).json(rows2);
+      } else return res.status(200).json(rows);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  getHistoryByGroupUrl(req, res) {
+  async getHistoryProductInParentGroupByUrls(req, res) {
     try {
-      const { url } = req.params;
+      const [rows, filds] = await pool.query(
+        Queries.getHistoryProductInParentGroupByUrls,
+        [req.params.url]
+      );
+      return res.status(200).json(rows);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-      pool.getConnection((error, connection) => {
-        connection.query(Queries.getHistoryByGroupUrl, [url], (err, data) => {
-          if (err) throw err;
-          return res.status(200).json(data);
-        });
-        connection.release();
-      });
+  async getHistoryByGroupUrl(req, res) {
+    try {
+      const [rows, filds] = await pool.query(Queries.getHistoryByGroupUrl, [
+        req.params.url,
+      ]);
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
