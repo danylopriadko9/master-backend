@@ -9,6 +9,14 @@ const newsRouter = require('./newsRouter.js');
 const searchRouter = require('./searchRouter.js');
 const authorizationRouter = require('./authorizationRouter.js');
 
+router.use('/auth', authorizationRouter);
+router.use('/filter', filterRouter);
+router.use('/category', categoryRouter);
+router.use('/product', productRouter);
+router.use('/news', newsRouter);
+router.use('/history', historyRouter);
+router.use('/search', searchRouter);
+
 router.use('/currency', (req, res) => {
   axios
     .get('https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=11')
@@ -43,14 +51,5 @@ router.use('/currency', (req, res) => {
         });
     });
 });
-
-router.use('/auth', authorizationRouter);
-
-router.use('/filter', filterRouter);
-router.use('/category', categoryRouter);
-router.use('/product', productRouter);
-router.use('/news', newsRouter);
-router.use('/history', historyRouter);
-router.use('/search', searchRouter);
 
 module.exports = router;

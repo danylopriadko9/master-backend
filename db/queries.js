@@ -1,4 +1,43 @@
 const Queries = {
+  createProduct: `
+    INSERT INTO product (t_created, t_updated, manufacturer_id, guarantee)
+    VALUES (?);
+  `,
+
+  updateProductLanguage: `
+    UPDATE product_lang pl
+      SET name = ?, description = ?, url = ?, meta_title = ?, meta_keywords = ?, meta_description = ?
+      WHERE pl.product_id = ?;
+  `,
+
+  updateProductPrice: `
+    UPDATE product_price pp
+      SET base_price = ?, currency_id = ?, discount_percent = ?
+      WHERE pp.product_id = ?;
+  `,
+
+  createProductLanguage: `
+    INSERT INTO product_lang (name, description, url, meta_title, meta_keywords, meta_description, product_id)
+    VALUES (?);
+  `,
+
+  createProductPrice: `
+    INSERT INTO product_price (base_price, currency_id, discount_percent, product_id)
+    VALUES (?);
+  `,
+
+  createProductCategory: `
+    INSERT INTO product_category (product_id, category_id)
+    VALUES (?);
+  `,
+
+  getAllManufacturers: `
+    SELECT m.id, ml.name FROM manufacturer m
+    JOIN manufacturer_lang ml
+      ON m.id = ml.manufacturer_id
+    WHERE ml.language_id = 1
+  `,
+
   getAllCategories: `
         SELECT 
         category.id, 
@@ -16,13 +55,14 @@ const Queries = {
         AND category_lang.language_id = 1
   `,
 
-  getOneProductByUrl: `
+  getOneProduct: `
         SELECT distinct
         pl.name as product_name, 
         cl.name as category_name, 
         pl.url, 
         pp.base_price, 
         pp.discount_percent, 
+        pp.currency_id,
         pc.product_id,
         pl.description,
         pl.meta_description,
@@ -31,7 +71,9 @@ const Queries = {
         pc.category_id,
         c.id,
         c.iso,
-        cl.url as category_url
+        cl.url as category_url,
+        p.guarantee,
+        p.manufacturer_id
         FROM product_category pc
         JOIN product_lang pl 
         ON pc.product_id = pl.product_id
@@ -43,8 +85,8 @@ const Queries = {
         ON pc.product_id = p.id
         JOIN currency c
         ON c.id = pp.currency_id
-        WHERE pl.url = ?
-        AND cl.language_id = 1
+        WHERE cl.language_id = 1
+
     `,
 
   checkTypeOfGroup: `
@@ -144,7 +186,7 @@ const Queries = {
   AND cl.language_id = 1
   AND pl.name LIKE ?
     OR cl.name LIKE ?
-    OR pc.product_id = ?
+    OR pc.product_id LIKE ?
   `,
 
   getProductsWithDiscount: `
@@ -237,9 +279,9 @@ ON c.id = pp.currency_id
 WHERE cl.language_id = 1
     `,
 
-  getProductsByCaregory: `
+  getProductsByCategory: `
     SELECT DISTINCT
-    pc.product_id, 
+        pc.product_id, 
         pc.category_id, 
         pl.name AS product_name, 
         pl.url, 
@@ -323,17 +365,15 @@ WHERE cl.language_id = 1
         ON cl.category_id = pc.category_id
         WHERE pl.language_id = pvl.language_id = 1
         AND prpv.status LIKE 'enabled'
-        AND cl.url LIKE ?
+        
 `,
 
   getFiltrationParamsByCategory: `
     SELECT DISTINCT
-          pl.name, 
           pvl.name,
           prpv.property_value_id,
-          pc.product_id,
           prpv.property_id
-        FROM master.product_rel_property_value prpv
+        FROM product_rel_property_value prpv
         JOIN property_lang pl 
           ON pl.property_id = prpv.property_id
         JOIN product_category pc
@@ -343,6 +383,8 @@ WHERE cl.language_id = 1
         JOIN property_value_lang pvl
           ON pvl.property_value_id = prpv.property_value_id
         WHERE cl.url = ?
+        AND pl.name is not null
+        AND prpv.status = 'enabled'
         AND pl.language_id = 1
         AND cl.language_id = 1
         AND pvl.language_id = 1

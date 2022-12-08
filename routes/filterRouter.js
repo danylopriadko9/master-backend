@@ -1,6 +1,6 @@
 const filterRouter = require('express').Router();
-const { parseParams } = require('../controllers/filtrationController.js');
+const filtrationController = require('../controllers/filtrationController.js');
 
-filterRouter.post('/post/:url', parseParams);
+filterRouter.post('/post/:url', filtrationController.parseParams);
 
 module.exports = filterRouter;

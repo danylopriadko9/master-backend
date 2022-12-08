@@ -1,10 +1,7 @@
-const {
-  getAllNews,
-  getOneNewById,
-} = require('../controllers/newsController.js');
+const newsController = require('../controllers/newsController.js');
 const newsRouter = require('express').Router();
 
-newsRouter.get('/', getAllNews);
-newsRouter.get('/:id', getOneNewById);
+newsRouter.get('/', newsController.getAllNews);
+newsRouter.get('/:id', newsController.getOneNewById);
 
 module.exports = newsRouter;

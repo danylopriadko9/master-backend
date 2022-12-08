@@ -1,38 +1,45 @@
-const {
-  getAllCategories,
-  getProductsByCaregory,
-  getProductsFromOnePageByCategory,
-  getFiltredProductsByManufacturerAndCategory,
-  getManufacturersAndQtyOfProducts,
-  getCharacteristicsCategory,
-  getFiltrationParamsByCategory,
-  getSubcategoriesByCategoryUrl,
-  getFiltrationCharacteristictAndParams,
-  getCategoryPhoto,
-} = require('../controllers/categoryController.js');
+const categoryController = require('../controllers/categoryController.js');
 const categoryRouter = require('express').Router();
 
-categoryRouter.get('/', getAllCategories);
-categoryRouter.get('/subcategories/:url', getSubcategoriesByCategoryUrl);
-categoryRouter.get('/page/:url/:page', getProductsFromOnePageByCategory);
+categoryRouter.get('/', categoryController.getAllCategories);
+categoryRouter.get(
+  '/subcategories/:url',
+  categoryController.getSubcategoriesByCategoryUrl
+);
+categoryRouter.get(
+  '/page/:url/:page',
+  categoryController.getProductsFromOnePageByCategory
+);
 categoryRouter.post(
   '/manufacturer/:url',
-  getFiltredProductsByManufacturerAndCategory
+  categoryController.getFiltredProductsByManufacturerAndCategory
 );
-categoryRouter.get('/manufacturers/:url', getManufacturersAndQtyOfProducts);
-categoryRouter.get('/characteristics/:url', getCharacteristicsCategory);
+categoryRouter.get(
+  '/manufacturers/:url',
+  categoryController.getManufacturersAndQtyOfProducts
+);
+categoryRouter.get(
+  '/characteristics/:url',
+  categoryController.getCharacteristicsCategoryByUrl
+);
+
+categoryRouter.get(
+  '/characteristics/id/:id',
+  categoryController.getCharacteristicsCategoryById
+);
+
 categoryRouter.get(
   '/characteristics-and-product-values/:url',
-  getFiltrationParamsByCategory
+  categoryController.getFiltrationParamsByCategory
 );
 
-categoryRouter.get('/photo/:id', getCategoryPhoto);
+categoryRouter.get('/photo/:id', categoryController.getCategoryPhoto);
 
-categoryRouter.get('/:url', getProductsByCaregory);
+categoryRouter.get('/:url', categoryController.getProductsByCategory);
 
 categoryRouter.get(
   '/filter/category/:url',
-  getFiltrationCharacteristictAndParams
+  categoryController.getFiltrationCharacteristictAndParams
 );
 
 module.exports = categoryRouter;

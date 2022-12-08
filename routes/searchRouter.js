@@ -1,8 +1,9 @@
-const {
-  getSearchProductsByValues,
-} = require('../controllers/searchController.js');
+const searchController = require('../controllers/searchController.js');
 const searchRouter = require('express').Router();
 
-searchRouter.use('/:groupUrl?/:searchValue/:page', getSearchProductsByValues);
+searchRouter.use(
+  '/:groupUrl?/:searchValue/:page',
+  searchController.getSearchProductsByValues
+);
 
 module.exports = searchRouter;

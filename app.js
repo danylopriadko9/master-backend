@@ -16,5 +16,6 @@ app.use('/', router);
 app.use('/static', express.static(path.join(path.resolve() + '/static')));
 
 app.listen(port, () => {
+  //console.log(process.env.HOST);
   console.log('Server is running on' + port);
 });

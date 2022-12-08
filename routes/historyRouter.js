@@ -1,14 +1,13 @@
-const {
-  getHistoryProductInParentGroupByUrls,
-  getHistoryByProductUrl,
-  getHistoryByGroupUrl,
-} = require('../controllers/historyController.js');
+const historyController = require('../controllers/historyController.js');
 const historyRouter = require('express').Router();
 
-historyRouter.get('/product/:url', getHistoryByProductUrl);
+historyRouter.get('/product/:url', historyController.getHistoryByProductUrl);
 
-historyRouter.get('/parent/product/:url', getHistoryProductInParentGroupByUrls);
+historyRouter.get(
+  '/parent/product/:url',
+  historyController.getHistoryProductInParentGroupByUrls
+);
 
-historyRouter.get('/group/:url', getHistoryByGroupUrl);
+historyRouter.get('/group/:url', historyController.getHistoryByGroupUrl);
 
 module.exports = historyRouter;

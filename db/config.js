@@ -1,4 +1,4 @@
-var mysql = require('mysql2');
+const mysql = require('mysql2');
 
 const pool = mysql.createPool({
   connectionLimit: 100, //important
@@ -9,7 +9,19 @@ const pool = mysql.createPool({
   debug: false,
 });
 
-module.exports = pool;
+// const SelectAllProducts = () => {
+//   return new Promise((resolve, reject) => {
+//     pool.query('SELECT * FROM product ', (error, elements) => {
+//       if (error) {
+//         return reject(error);
+//       }
+//       return resolve(elements);
+//     });
+//   });
+// };
+
+module.exports = pool.promise();
+//module.exports = pool;
 
 //upobthli_newmasterdb
 //upobthli_newmasterdb
