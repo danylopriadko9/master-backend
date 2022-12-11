@@ -2,9 +2,115 @@ const pool = require('../db/config.js');
 const { Queries } = require('../db/queries.js');
 const path = require('path');
 const { readdir } = require('fs').promises;
-const db = require('../db.js');
 
 class categoryController {
+  async createCategory(req, res) {
+    try {
+      const {
+        parent_id,
+        name,
+        url,
+        meta_title,
+        meta_keywords,
+        meta_description,
+      } = req.body;
+
+      if (!name.length || !url.length)
+        return res.status(400).json('Category name or url mustnt be empty');
+
+      const [checkUrl, fileds3] = await pool.query(
+        'select id from category_lang where url = ?',
+        [url]
+      );
+      if (checkUrl.length)
+        return res
+          .status(400)
+          .json('Category with this url already was created');
+
+      const [rows, filds] = await pool.query(Queries.createCategory, [
+        parent_id || 0,
+        1,
+      ]);
+
+      const create_data = [
+        Number(rows.insertId),
+        name,
+        url,
+        meta_title,
+        meta_keywords,
+        meta_description,
+        1,
+      ];
+
+      const [rows2, filds2] = await pool.query(Queries.createCategoryLang, [
+        create_data,
+      ]);
+
+      return res.status(200).json('Category was created');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async updateCategory(req, res) {
+    try {
+      console.log('dsds');
+      const { name, url, meta_title, meta_keywords, meta_description } =
+        req.body;
+
+      const { id } = req.params;
+
+      const [checkUrl, fileds3] = await pool.query(
+        'select category_id from category_lang where url = ?',
+        [url]
+      );
+      if (checkUrl.length && Number(checkUrl[0].category_id) !== Number(id)) {
+        return res
+          .status(400)
+          .json('Category with this url already was created');
+      }
+
+      await pool.query(Queries.updateCategory, [
+        name,
+        url,
+        meta_title,
+        meta_keywords,
+        meta_description,
+        id,
+      ]);
+      return res.status(200).json('Category was updated');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async deleteCategory(req, res) {
+    try {
+      const [rows, filds] = await pool.query(
+        'SELECT * FROM category WHERE parent_id = ?',
+        [req.params.id]
+      );
+      const [rows2, filds2] = await pool.query(
+        'SELECT * FROM product_category WHERE category_id = ?',
+        [req.params.id]
+      );
+
+      if (rows.length || rows2.length)
+        return res
+          .status(400)
+          .json('This category contain subcategories or products');
+
+      await pool.query('DELETE FROM category WHERE id=?;', [req.params.id]);
+      await pool.query('DELETE FROM category_lang WHERE category_id=?;', [
+        req.params.id,
+      ]);
+
+      return res.status(200).json('Category was deleted');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async getCategoryPhoto(req, res) {
     try {
       const dir = `/static/category/${req.params.id}`;

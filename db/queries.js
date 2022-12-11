@@ -1,4 +1,20 @@
 const Queries = {
+  createCategoryLang: `
+  INSERT INTO category_lang (category_id, name, url, meta_title, meta_keywords, meta_description, language_id)
+  VALUES (?);
+  `,
+
+  createCategory: `
+    INSERT INTO category (parent_id, status)
+    VALUES (?, ?);
+  `,
+
+  updateCategory: `
+    UPDATE category_lang
+    SET name = ?, url= ?, meta_title = ?, meta_keywords = ?, meta_description = ?
+    WHERE category_id = ?;
+  `,
+
   createProduct: `
     INSERT INTO product (t_created, t_updated, manufacturer_id, guarantee)
     VALUES (?);

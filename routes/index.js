@@ -8,6 +8,7 @@ const productRouter = require('./productRouter.js');
 const newsRouter = require('./newsRouter.js');
 const searchRouter = require('./searchRouter.js');
 const authorizationRouter = require('./authorizationRouter.js');
+const usersRouter = require('./usersRouter.js');
 
 router.use('/auth', authorizationRouter);
 router.use('/filter', filterRouter);
@@ -16,6 +17,7 @@ router.use('/product', productRouter);
 router.use('/news', newsRouter);
 router.use('/history', historyRouter);
 router.use('/search', searchRouter);
+router.use('/users', usersRouter);
 
 router.use('/currency', (req, res) => {
   axios
