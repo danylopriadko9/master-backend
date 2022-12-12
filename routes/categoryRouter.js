@@ -1,5 +1,5 @@
 const categoryController = require('../controllers/categoryController.js');
-const { accessCheck } = require('../middlewares/index.js');
+const { accessCheck } = require('../middlewares/accessCheck.js');
 const categoryRouter = require('express').Router();
 
 categoryRouter.get('/', categoryController.getAllCategories);
@@ -11,6 +11,9 @@ categoryRouter.get(
   '/page/:url/:page',
   categoryController.getProductsFromOnePageByCategory
 );
+
+categoryRouter.post('/test/:url', categoryController.test);
+
 categoryRouter.post(
   '/manufacturer/:url',
   categoryController.getFiltredProductsByManufacturerAndCategory
@@ -45,8 +48,8 @@ categoryRouter.get(
 
 categoryRouter.post('/create', accessCheck, categoryController.createCategory);
 
-categoryRouter.put('/:id', categoryController.updateCategory);
+categoryRouter.put('/:id', accessCheck, categoryController.updateCategory);
 
-categoryRouter.delete('/:id', categoryController.deleteCategory);
+categoryRouter.delete('/:id', accessCheck, categoryController.deleteCategory);
 
 module.exports = categoryRouter;

@@ -110,11 +110,16 @@ class productController {
 
   async getProductImage(req, res) {
     try {
-      const dir = `/static/product/${req.params.id}`;
-      const dirents = await readdir(path.resolve() + dir, (err) => {
-        if (err) throw new Error(err);
-      });
-      res.redirect(`http://localhost:8000${dir}/${dirents[0]}`);
+      const [rows, filds] = await pool.query(
+        `SELECT * FROM master.product_image
+      where product_id = ?
+      and type = 'main'`,
+        [req.params.id]
+      );
+
+      const { dir_path, filename } = rows[0];
+
+      return res.status(200).json(`/${dir_path}/${filename}`);
     } catch (error) {
       console.log(error);
     }

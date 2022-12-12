@@ -4,6 +4,53 @@ const path = require('path');
 const { readdir } = require('fs').promises;
 
 class categoryController {
+  async test(req, res) {
+    try {
+      const params = req.body;
+
+      const keys = Object.keys(params);
+      const values = Object.values(params);
+
+      const q = `
+      SELECT DISTINCT p.id FROM product_rel_property_value prpv
+      JOIN product p
+        ON p.id = prpv.product_id
+      JOIN product_category pc
+        ON p.id = pc.product_id
+      JOIN category_lang cl
+        ON pc.category_id = cl.category_id
+      AND cl.url = ? -- достаем url из запроса
+      AND prpv.status = 'enabled'
+      AND property_id = ? -- эти значение будут меняться 
+      AND property_value_id = ? --
+      `;
+
+      let result = [];
+
+      keys.forEach(async (el, i) => {
+        const [rows, filds] = await pool.query(q, [
+          req.params.url,
+          el,
+          values[i],
+        ]);
+
+        if (!result.length) {
+          result = rows.map((el) => el.id);
+          return;
+        }
+
+        result = result.filter(
+          (x) => rows.map((el) => el.id).indexOf(x) !== -1
+        );
+        console.log(result);
+      });
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async createCategory(req, res) {
     try {
       const {

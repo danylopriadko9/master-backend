@@ -19,7 +19,6 @@ class usersController {
   async updateUser(req, res) {
     try {
       const { role } = req.body;
-      console.log(role, req.params.id);
       await pool.query(`UPDATE user SET role = ? WHERE id = ?`, [
         role,
         req.params.id,

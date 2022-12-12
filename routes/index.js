@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const axios = require('axios');
+const fileMiddleware = require('../middlewares/file.js');
 
 const categoryRouter = require('./categoryRouter.js');
 const historyRouter = require('./historyRouter.js');
@@ -9,6 +10,7 @@ const newsRouter = require('./newsRouter.js');
 const searchRouter = require('./searchRouter.js');
 const authorizationRouter = require('./authorizationRouter.js');
 const usersRouter = require('./usersRouter.js');
+const imageUploadController = require('../controllers/imageUploadController.js');
 
 router.use('/auth', authorizationRouter);
 router.use('/filter', filterRouter);
@@ -18,6 +20,12 @@ router.use('/news', newsRouter);
 router.use('/history', historyRouter);
 router.use('/search', searchRouter);
 router.use('/users', usersRouter);
+
+router.use(
+  '/upload/:type/:id',
+  fileMiddleware.single('avatar'),
+  imageUploadController.uploadCategoryImage
+);
 
 router.use('/currency', (req, res) => {
   axios
