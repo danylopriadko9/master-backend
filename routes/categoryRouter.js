@@ -1,5 +1,6 @@
 const categoryController = require('../controllers/categoryController.js');
 const { accessCheck } = require('../middlewares/accessCheck.js');
+const currencyFiltration = require('../middlewares/currencyFiltration.js');
 const categoryRouter = require('express').Router();
 
 categoryRouter.get('/', categoryController.getAllCategories);
@@ -12,7 +13,11 @@ categoryRouter.get(
   categoryController.getProductsFromOnePageByCategory
 );
 
-categoryRouter.post('/test/:url', categoryController.test);
+categoryRouter.post(
+  '/test/:url',
+  currencyFiltration,
+  categoryController.filtration
+);
 
 categoryRouter.post(
   '/manufacturer/:url',

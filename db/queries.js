@@ -47,6 +47,27 @@ const Queries = {
     VALUES (?);
   `,
 
+  getManufacturersAndPriceByCategory: `
+  SELECT DISTINCT 
+  p.id,
+  manufacturer_id, 
+    base_price, 
+    ceiling(base_price - ((base_price * discount_percent)/100)) as discount_price, 
+    iso  
+FROM category_lang cl
+JOIN product_category pc
+  ON pc.category_id = cl.category_id
+JOIN product p
+  ON p.id = pc.product_id
+JOIN product_price pp
+  ON pp.product_id = p.id
+JOIN currency_lang carl
+  ON carl.currency_id = pp.currency_id
+JOIN currency c 
+  ON c.id = pp.currency_id
+WHERE cl.url = ?
+  `,
+
   getAllManufacturers: `
     SELECT m.id, ml.name FROM manufacturer m
     JOIN manufacturer_lang ml

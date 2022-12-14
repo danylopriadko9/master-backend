@@ -4,14 +4,14 @@ const path = require('path');
 const { readdir } = require('fs').promises;
 
 class categoryController {
-  async test(req, res) {
+  async filtration(req, res) {
     try {
-      const params = req.body;
+      const params = req.body.params;
 
       const keys = Object.keys(params);
       const values = Object.values(params);
 
-      const q = `
+      let q = `
       SELECT DISTINCT p.id FROM product_rel_property_value prpv
       JOIN product p
         ON p.id = prpv.product_id
@@ -21,17 +21,22 @@ class categoryController {
         ON pc.category_id = cl.category_id
       AND cl.url = ? -- достаем url из запроса
       AND prpv.status = 'enabled'
-      AND property_id = ? -- эти значение будут меняться 
+      AND property_id = ? -- эти значение будут меняться
       AND property_value_id = ? --
       `;
 
+      if (res.locals.filtred_ids.length) {
+        q += `AND p.id IN (?)`;
+      }
+
       let result = [];
 
-      keys.forEach(async (el, i) => {
+      const promises = keys.map(async (el, i) => {
         const [rows, filds] = await pool.query(q, [
           req.params.url,
           el,
           values[i],
+          res.locals.filtred_ids.length && res.locals.filtred_ids,
         ]);
 
         if (!result.length) {
@@ -42,9 +47,8 @@ class categoryController {
         result = result.filter(
           (x) => rows.map((el) => el.id).indexOf(x) !== -1
         );
-        console.log(result);
       });
-
+      await Promise.all(promises);
       return res.status(200).json(result);
     } catch (error) {
       console.log(error);
