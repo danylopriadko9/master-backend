@@ -4,7 +4,6 @@ const fileMiddleware = require('../middlewares/file.js');
 
 const categoryRouter = require('./categoryRouter.js');
 const historyRouter = require('./historyRouter.js');
-const filterRouter = require('./filterRouter.js');
 const productRouter = require('./productRouter.js');
 const newsRouter = require('./newsRouter.js');
 const searchRouter = require('./searchRouter.js');
@@ -13,7 +12,6 @@ const usersRouter = require('./usersRouter.js');
 const imageUploadController = require('../controllers/imageUploadController.js');
 
 router.use('/auth', authorizationRouter);
-router.use('/filter', filterRouter);
 router.use('/category', categoryRouter);
 router.use('/product', productRouter);
 router.use('/news', newsRouter);

@@ -1,6 +1,5 @@
 const pool = require('../db/config.js');
 const fs = require('fs');
-const { promisify } = require('util');
 
 class imageUploadController {
   async uploadCategoryImage(req, res) {

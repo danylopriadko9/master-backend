@@ -1,28 +1,13 @@
 const mysql = require('mysql2');
+require('dotenv').config();
 
 const pool = mysql.createPool({
-  connectionLimit: 100, //important
-  host: 'localhost',
-  user: 'root',
-  password: 'master1951',
-  database: 'master',
+  connectionLimit: process.env.DB_CON_LIMIT, //important
+  host: process.env.HOST,
+  user: process.env.DB_USER,
+  password: process.env.PASSWORD,
+  database: process.env.DATABASE,
   debug: false,
 });
 
-// const SelectAllProducts = () => {
-//   return new Promise((resolve, reject) => {
-//     pool.query('SELECT * FROM product ', (error, elements) => {
-//       if (error) {
-//         return reject(error);
-//       }
-//       return resolve(elements);
-//     });
-//   });
-// };
-
 module.exports = pool.promise();
-//module.exports = pool;
-
-//upobthli_newmasterdb
-//upobthli_newmasterdb
-//80jcF0Sd~H_P
