@@ -2,8 +2,39 @@ const pool = require('../db/config.js');
 const { Queries } = require('../db/queries.js');
 const jwt = require('jsonwebtoken');
 const path = require('path');
-const { readdir } = require('fs').promises;
+const fs = require('fs');
 const date = require('date-and-time');
+const multer = require('multer');
+
+// create multer storage for products images upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join('uploads/static'));
+  },
+  filename: function (req, file, cb) {
+    cb(
+      null,
+      file.fieldname + '-' + Date.now() + file.originalname.match(/\..*$/)[0]
+    );
+  },
+});
+const multi_upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype == 'image/png' ||
+      file.mimetype == 'image/jpeg' ||
+      file.mimetype == 'image/jpg'
+    ) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+      const err = new Error('Only .jpg .jpeg .png images are supported!');
+      err.name = 'ExtensionError';
+      return cb(err);
+    }
+  },
+}).array('uploadImages', 10);
 
 class productController {
   async getProductById(req, res) {
@@ -202,6 +233,52 @@ class productController {
 
         return res.status(200);
       });
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async uploadPhotos(req, res) {
+    try {
+      if (req.files.length) {
+        req.files.forEach(async (el) => {
+          const data = [
+            req.params.id,
+            `static/product/${req.params.id}`,
+            el.filename,
+            'main',
+          ];
+          console.log(data);
+          await pool.query(
+            'INSERT INTO product_image (product_id, dir_path, filename, type) VALUES (?);',
+            [data]
+          );
+        });
+      }
+
+      return res.status(200).json('Success');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async checkAndDeletePhotos(req, res) {
+    try {
+      const filePath = path.join(
+        __dirname,
+        `../static/product/${req.params.id}`
+      );
+
+      const photosNames = req.body;
+
+      fs.readdirSync(filePath).forEach(async (el) => {
+        if (!photosNames.filter((e) => e.filename === el).length) {
+          await pool.query(`DELETE FROM product_image WHERE filename=?`, [el]);
+          fs.unlinkSync(`${filePath}/${el}`);
+        }
+      });
+
+      return res.status(200).json(filePath);
     } catch (error) {
       console.log(error);
     }

@@ -11,8 +11,24 @@ class categoryController {
       const keys = Object.keys(params);
       const values = Object.values(params);
 
+      // если нету продуктов подходящих по цене и производителю возващаем пустой обьект
+      if (!res.locals.filtred_ids.length) {
+        return res.status(200).json([]);
+      }
+
+      // проверна на наличие параметров фильтрации и возват отфильтрованных по цене и производителю товаров
+      if (!keys.length && res.locals.filtred_ids.length) {
+        console.log('dsdds');
+        const [rows3, fields3] = await pool.query(
+          Queries.getProductsByIds + `AND pc.product_id IN(?)`,
+          [res.locals.filtred_ids]
+        );
+
+        return res.status(200).json(rows3);
+      }
+
       let q = `
-      SELECT DISTINCT p.id FROM product_rel_property_value prpv
+      SELECT DISTINCT p.id, prpv.property_id, prpv.property_value_id FROM product_rel_property_value prpv
       JOIN product p
         ON p.id = prpv.product_id
       JOIN product_category pc
@@ -23,11 +39,8 @@ class categoryController {
       AND prpv.status = 'enabled'
       AND property_id = ? -- эти значение будут меняться
       AND property_value_id = ? --
+      AND p.id IN (?)
       `;
-
-      if (res.locals.filtred_ids.length) {
-        q += `AND p.id IN (?)`;
-      }
 
       let result = [];
 
@@ -36,7 +49,7 @@ class categoryController {
           req.params.url,
           el,
           values[i],
-          res.locals.filtred_ids.length && res.locals.filtred_ids,
+          res.locals.filtred_ids,
         ]);
 
         if (!result.length) {
@@ -49,7 +62,20 @@ class categoryController {
         );
       });
       await Promise.all(promises);
-      return res.status(200).json(result);
+
+      // если нету подходящих по парамметрам продуктов
+      if (!result.length) {
+        return res.status(200).json([]);
+      }
+
+      // ищем подходящие продукты по айди
+      const [rows3, fields3] = await pool.query(
+        Queries.getProductsByIds + 'AND pc.product_id IN (?)',
+        [result]
+      );
+
+      // конечный возврат продуктов
+      return res.status(200).json(rows3);
     } catch (error) {
       console.log(error);
     }
@@ -181,18 +207,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   pool.getConnection((err, connection) => {
-    //     connection.query(Queries.getAllCategories, (err, data) => {
-    //       if (err) throw err;
-    //       else return res.status(200).json(data);
-    //     });
-
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getProductsByCategory(req, res) {
@@ -204,19 +218,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   const url = req.params.url;
-
-    //   pool.getConnection((error, connection) => {
-    //     connection.query(Queries.getProductsByCategory, [url], (err, data) => {
-    //       if (err) throw err;
-    //       return res.status(200).json(data);
-    //     });
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getProductsFromOnePageByCategory(req, res) {
@@ -244,39 +245,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-
-    // try {
-    //   const page = req.params.page;
-    //   const qtyItemsPage = 8;
-    //   const startingLimit = (page - 1) * qtyItemsPage;
-
-    //   pool.getConnection((error, connection) => {
-    //     connection.query(
-    //       Queries.getProductsByCategory,
-    //       [req.params.url],
-    //       (err, data) => {
-    //         if (err) throw err;
-    //         const numberOfResult = data.length;
-    //         const numberOfPages = Math.ceil(data.length / qtyItemsPage);
-
-    //         connection.query(
-    //           Queries.getProductsFromOnePageByCategory,
-    //           [req.params.url, startingLimit, qtyItemsPage],
-    //           (err, data) => {
-    //             if (err) throw err;
-    //             return res.status(200).json({
-    //               data,
-    //               numberOfResult,
-    //               numberOfPages,
-    //             });
-    //           }
-    //         );
-    //       }
-    //     );
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getSubcategoryProductsByUrl(req, res) {
@@ -288,19 +256,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   const { url } = req.params;
-    //   pool.getConnection((error, connection) => {
-    //     connection.query(Queries.getProductsByCategory, [url], (err, data) => {
-    //       if (err) throw err;
-    //       else return res.status(200).json(data);
-    //     });
-
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getFiltredProductsByManufacturerAndCategory(req, res) {
@@ -318,27 +273,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   const { url } = req.params;
-    //   const { brands } = req.body;
-
-    //   let q = Queries.getFiltredProductsByManufacturerAndCategory;
-
-    //   if (brands && brands.length) {
-    //     q += ` AND p.manufacturer_id IN(${brands.join(', ')})`;
-    //   }
-
-    //   pool.getConnection((error, connection) => {
-    //     connection.query(q, [url], (err, data) => {
-    //       if (err) throw err;
-    //       else return res.status(200).json(data);
-    //     });
-
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getManufacturersAndQtyOfProducts(req, res) {
@@ -351,22 +285,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   const url = req.params.url;
-    //   pool.getConnection((error, connection) => {
-    //     connection.query(
-    //       Queries.getManufacturersAndQtyOfProducts,
-    //       [url],
-    //       (err, data) => {
-    //         if (err) throw err;
-    //         else return res.status(200).json(data);
-    //       }
-    //     );
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getCharacteristicsCategoryByUrl(req, res) {
@@ -379,21 +297,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-
-    // try {
-    //   const { url } = req.params;
-
-    //   pool.getConnection((error, connection) => {
-    //     const q = Queries.getCharacteristicsCategory + `AND cl.url LIKE ?`;
-    //     connection.query(q, [url], (err, data) => {
-    //       if (err) throw err;
-    //       else return res.status(200).json(data);
-    //     });
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getCharacteristicsCategoryById(req, res) {
@@ -406,20 +309,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   const { id } = req.params;
-
-    //   pool.getConnection((error, connection) => {
-    //     const q = Queries.getCharacteristicsCategory + `AND cl.category_id = ?`;
-    //     connection.query(q, [id], (err, data) => {
-    //       if (err) throw err;
-    //       else return res.status(200).json(data);
-    //     });
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getFiltrationParamsByCategory(req, res) {
@@ -432,23 +321,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   const { url } = req.params;
-
-    //   pool.getConnection((error, connection) => {
-    //     connection.query(
-    //       Queries.getFiltrationParamsByCategory,
-    //       [url],
-    //       (err, data) => {
-    //         if (err) throw err;
-    //         else return res.status(200).json(data);
-    //       }
-    //     );
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getSubcategoriesByCategoryUrl(req, res) {
@@ -461,25 +333,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   const { url } = req.params;
-
-    //   pool.getConnection((error, connection) => {
-    //     connection.query(
-    //       Queries.getSubcategoriesByCategoryUrl,
-    //       [url],
-    //       (err, data) => {
-    //         if (err) throw err;
-
-    //         return res.status(200).json(data);
-    //       }
-    //     );
-
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 
   async getFiltrationCharacteristictAndParams(req, res) {
@@ -495,14 +348,22 @@ class categoryController {
       );
 
       const response_obj = {};
+
       rows2.forEach((el) => {
         if (response_obj.hasOwnProperty(el.property_id)) {
-          const prop_status = response_obj[el.property_id].includes(el.name);
-          if (!prop_status && el.name.length)
-            response_obj[el.property_id].push(el.name);
+          const prop_status = response_obj[el.property_id].filter(
+            (e) => e.property_value_id === el.property_value_id
+          );
+          if (!prop_status.length && el.name.length)
+            response_obj[el.property_id].push({
+              value: el.name,
+              value_id: el.property_value_id,
+            });
         } else {
           if (el.name.length > 0) {
-            response_obj[el.property_id] = [el.name];
+            response_obj[el.property_id] = [
+              { value: el.name, value_id: el.property_value_id },
+            ];
           }
         }
       });
@@ -513,45 +374,6 @@ class categoryController {
     } catch (error) {
       console.log(error);
     }
-    // try {
-    //   pool.getConnection((error, connection) => {
-    //     const q = Queries.getCharacteristicsCategory + `AND cl.url LIKE ?`;
-    //     connection.query(q, [req.params.url], (err, data) => {
-    //       if (err) throw err;
-
-    //       connection.query(
-    //         Queries.getFiltrationParamsByCategory,
-    //         [req.params.url],
-    //         (err, secoundData) => {
-    //           if (err) throw err;
-
-    //           const response_obj = {};
-    //           secoundData.forEach((el) => {
-    //             if (response_obj.hasOwnProperty(el.property_id)) {
-    //               const prop_status = response_obj[el.property_id].includes(
-    //                 el.name
-    //               );
-    //               if (!prop_status && el.name.length)
-    //                 response_obj[el.property_id].push(el.name);
-    //             } else {
-    //               if (el.name.length > 0) {
-    //                 response_obj[el.property_id] = [el.name];
-    //               }
-    //             }
-    //           });
-
-    //           return res.json({
-    //             characteriscics: data,
-    //             values: response_obj,
-    //           });
-    //         }
-    //       );
-    //     });
-    //     connection.release();
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    // }
   }
 }
 

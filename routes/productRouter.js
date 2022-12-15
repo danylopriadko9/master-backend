@@ -1,5 +1,6 @@
 const productController = require('../controllers/productController.js');
 const productRouter = require('express').Router();
+const fileMiddleware = require('../middlewares/file.js');
 
 productRouter.get('/discount', productController.getProductsWithDiscount);
 
@@ -27,6 +28,15 @@ productRouter.get(
 
 productRouter.get('/photos/:id', productController.getAllProductPhotosById);
 productRouter.get('/photo/:id', productController.getProductImage);
+productRouter.post(
+  `/photos-delete/:id`,
+  productController.checkAndDeletePhotos
+);
+productRouter.post(
+  `/photos-upload/:type/:id`,
+  fileMiddleware.array('files'),
+  productController.uploadPhotos
+);
 
 productRouter.get(
   '/compare/:id',

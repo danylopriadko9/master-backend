@@ -288,20 +288,15 @@ AND pp.discount_percent > 25
     `,
 
   getProductsByIds: `
-SELECT distinct
-pl.name as product_name,
-cl.name as category_name,
-pl.url,
-pp.base_price,
-pp.discount_percent,
-pc.product_id,
-pl.description,
-pl.meta_description,
-pl.meta_title,
-pc.category_id,
-c.id,
-c.iso,
-cl.url as category_url
+    SELECT distinct
+      pl.name as product_name,
+      cl.name as category_name,
+      pl.url,
+      pp.base_price,
+      pp.discount_percent,
+      pc.product_id,
+      c.id,
+      c.iso
 FROM product_category pc
 JOIN product_lang pl
 ON pc.product_id = pl.product_id
@@ -389,8 +384,8 @@ WHERE cl.language_id = 1
 
   getCharacteristicsCategory: `
         SELECT DISTINCT 
-        pl.name AS characteristic,
-        pl.property_id
+          pl.name AS characteristic,
+          pl.property_id
         FROM product_rel_property_value prpv
         JOIN property_value_lang pvl 
         ON pvl.property_value_id = prpv.property_value_id

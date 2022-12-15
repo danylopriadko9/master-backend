@@ -7,19 +7,18 @@ const currencyFiltration = async (req, res, next) => {
     const { url } = req.params;
     const { brands } = req.body;
 
-    if (!req.body.max && !req.body.min) {
-      res.locals.filtred_ids = [];
-      next();
-      return;
+    let q = Queries.getManufacturersAndPriceByCategory;
+
+    if (brands.length) {
+      q += ` AND p.manufacturer_id IN(?)`;
     }
 
-    let q = Queries.getManufacturersAndPriceByCategory;
-    if (brands?.length) q += ` AND p.manufacturer_id IN(${brands.join(', ')})`;
+    let [rows, filds] = await pool.query(q, [url, brands]);
 
-    let [rows, filds] = await pool.query(q, [url]);
-
-    if (!rows.length) {
-      return res.status(200).json([]);
+    if (!req.body.max && !req.body.min) {
+      res.locals.filtred_ids = rows.map((el) => el.id);
+      next();
+      return;
     }
 
     const { data } = await axios.get(
@@ -73,10 +72,6 @@ const currencyFiltration = async (req, res, next) => {
         return el.id;
       else return false;
     });
-
-    if (!req.body.params) {
-      return res.status(200).json(result.filter((el) => el !== false));
-    }
 
     res.locals.filtred_ids = result.filter((el) => el !== false);
     next();
