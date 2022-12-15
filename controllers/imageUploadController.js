@@ -1,17 +1,10 @@
 const pool = require('../db/config.js');
 const fs = require('fs');
 const { promisify } = require('util');
-const unlinkAsync = promisify(fs.unlink);
-
-//delete file
-//await unlinkAsync(req.file.path)
 
 class imageUploadController {
   async uploadCategoryImage(req, res) {
     try {
-      // INSERT INTO product_image (product_id, dir_path, filename)
-      // VALUES (?);
-
       const file = req.file?.filename || req.body.file;
 
       console.log(req.body);

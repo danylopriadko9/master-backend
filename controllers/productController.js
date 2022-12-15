@@ -142,15 +142,15 @@ class productController {
   async getProductImage(req, res) {
     try {
       const [rows, filds] = await pool.query(
-        `SELECT * FROM master.product_image
+        `SELECT * FROM product_image
       where product_id = ?
       and type = 'main'`,
         [req.params.id]
       );
 
-      const { dir_path, filename } = rows[0];
+      const { filename } = rows[0];
 
-      return res.status(200).json(`/${dir_path}/${filename}`);
+      return res.status(200).json(`/product/${req.params.id}/${filename}`);
     } catch (error) {
       console.log(error);
     }
@@ -246,9 +246,9 @@ class productController {
             req.params.id,
             `static/product/${req.params.id}`,
             el.filename,
-            'main',
+            el.type,
           ];
-          console.log(data);
+
           await pool.query(
             'INSERT INTO product_image (product_id, dir_path, filename, type) VALUES (?);',
             [data]
@@ -271,10 +271,28 @@ class productController {
 
       const photosNames = req.body;
 
-      fs.readdirSync(filePath).forEach(async (el) => {
-        if (!photosNames.filter((e) => e.filename === el).length) {
-          await pool.query(`DELETE FROM product_image WHERE filename=?`, [el]);
-          fs.unlinkSync(`${filePath}/${el}`);
+      if (fs.readdirSync(filePath).length !== photosNames.length) {
+        fs.readdirSync(filePath).forEach(async (el) => {
+          if (!photosNames.filter((e) => e.filename === el).length) {
+            await pool.query(`DELETE FROM product_image WHERE filename=?`, [
+              el,
+            ]);
+            fs.unlinkSync(`${filePath}/${el}`);
+          }
+        });
+      }
+
+      photosNames.forEach(async (el) => {
+        if (el.type === 'main') {
+          await pool.query(
+            `UPDATE product_image SET type = "general" WHERE type = 'main' AND product_id = ?`,
+            [req.params.id]
+          );
+
+          await pool.query(
+            `UPDATE product_image SET type = 'main' WHERE product_id = ? AND filename = ?`,
+            [req.params.id, el.filename]
+          );
         }
       });
 

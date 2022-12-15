@@ -173,7 +173,6 @@ WHERE cl.url = ?
   getSearchProductsInParentGroup: `
       SELECT
       c.id,
-      ci.dir_path,
       ci.filename,
       cl.name,
       cl.url
@@ -233,7 +232,6 @@ WHERE cl.url = ?
   pl.url, 
   pp.base_price, 
   pp.discount_percent, 
-  pi.dir_path, 
   pi.filename, 
   pc.product_id,
   pc.category_id,
@@ -466,16 +464,12 @@ WHERE cl.language_id = 1
 `,
 
   getAllProductPhotosById: `
-    SELECT filename
-    FROM product p
-    JOIN product_image pi ON p.id = pi.product_id
-    WHERE p.id = ?
+    SELECT id, filename, type FROM product_image pi WHERE pi.product_id = ?
 `,
 
   getSubcategoriesByCategoryUrl: `
   SELECT 
   c.id,
-  ci.dir_path,
     ci.filename,
     cl.name,
     cl.url
