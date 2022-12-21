@@ -20,7 +20,7 @@ class authorizationController {
       const hash = bcrypt.hashSync(req.body.password, salt);
 
       const q2 =
-        'INSERT INTO user(`username`, `email`, `password_hash`, `status`, `created_at`, `updated_at`, `role`) VALUES (?)';
+        'INSERT INTO user(`username`, `email`, `password_hash`, `status`, `created_at`, `updated_at`, `role`, `auth_key`) VALUES (?)';
 
       const now = new Date();
       const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
@@ -32,6 +32,7 @@ class authorizationController {
         formatDate,
         formatDate,
         `user`,
+        null,
       ];
 
       await pool.query(q2, [values]);

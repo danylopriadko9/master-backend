@@ -4,6 +4,12 @@ const fileMiddleware = require('../middlewares/file.js');
 
 productRouter.get('/discount', productController.getProductsWithDiscount);
 
+productRouter.post('/relation/:id', productController.changeRelationProducts);
+productRouter.post(
+  '/characteristics/:id',
+  productController.changeProductCharacteristics
+);
+
 productRouter.get('/new', productController.getNewProducts);
 
 productRouter.get('/one/:url', productController.getOneProductByUrl);

@@ -49,6 +49,101 @@ class productController {
     }
   }
 
+  async changeProductCharacteristics(req, res) {
+    try {
+      const params = req.body;
+      const { id } = req.params;
+
+      console.log(params);
+
+      await pool.query(
+        `DELETE FROM product_rel_property_value WHERE product_id = ?`,
+        [id]
+      );
+
+      params.forEach(async (el) => {
+        if (!el.value.length) {
+          await pool.query(
+            `UPDATE product_rel_property_value SET status = 'disabled' WHERE product_id = ? AND property_value_id = ?`,
+            [id, el.property_id]
+          );
+          return;
+        }
+
+        // проверка существует ли такое значение
+        const [rows2, filds2] = await pool.query(
+          `SELECT property_value_id FROM property_value_lang WHERE name = ? AND language_id = 1`,
+          [el.value]
+        );
+
+        if (rows2.length) {
+          const values = [
+            id,
+            el.property_id,
+            rows2[0].property_value_id,
+            'enabled',
+          ];
+
+          await pool.query(
+            `INSERT INTO product_rel_property_value(product_id, property_id, property_value_id, status) VALUES (?)`,
+            [values]
+          );
+        } else {
+          const now = new Date();
+          const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
+
+          const values = [formatDate, formatDate, el.property_id, 0];
+          const [rows3, filds3] = await pool.query(
+            `INSERT INTO property_value(t_created, t_updated, property_id, sort) VALUES(?)`,
+            [values]
+          );
+
+          const { insertId } = rows3;
+
+          const values2 = [insertId, 1, el.value];
+          await pool.query(
+            `INSERT INTO property_value_lang(property_value_id, language_id, name) VALUES(?)`,
+            [values2]
+          );
+
+          const values3 = [id, el.property_id, insertId, 'enabled'];
+          await pool.query(
+            `INSERT INTO product_rel_property_value(product_id, property_id, property_value_id, status) VALUES (?)`,
+            [values3]
+          );
+        }
+      });
+      return res.status(200).json('success');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async changeRelationProducts(req, res) {
+    try {
+      const params = req.body;
+
+      await pool.query(`DELETE FROM product_rel_product WHERE product_id = ?`, [
+        req.params.id,
+      ]);
+
+      const now = new Date();
+      const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
+
+      params.forEach(async (el) => {
+        const set = [formatDate, req.params.id, el.product_id];
+
+        await pool.query(
+          `INSERT INTO product_rel_product(t_created, product_id, relation_product_id) VALUES (?)`,
+          [set]
+        );
+      });
+      return res.status(200).json('Success');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async getProductsPropertiesProductsId(req, res) {
     try {
       const q = `SELECT distinct relation_product_id AS product_id FROM product_rel_product prp WHERE prp.product_id = ?`;

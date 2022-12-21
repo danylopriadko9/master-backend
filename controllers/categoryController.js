@@ -2,8 +2,82 @@ const pool = require('../db/config.js');
 const { Queries } = require('../db/queries.js');
 const path = require('path');
 const { readdir } = require('fs').promises;
+const date = require('date-and-time');
 
 class categoryController {
+  async updateCategoryCharacteristics(req, res) {
+    try {
+      const { id } = req.params;
+      const characteristics = req.body;
+
+      const q = `
+      SELECT pl.property_id, name FROM master.property_rel_category prc
+      JOIN property_lang pl
+        ON pl.property_id = prc.property_id
+      WHERE status = "enabled"
+      AND category_id = ?
+      AND language_id = ?
+      `;
+      const [category_characteristics] = await pool.query(q, [id, 1]);
+
+      category_characteristics.forEach(async (el) => {
+        const check = characteristics.filter(
+          (e) => e.property_id === el.property_id
+        );
+
+        if (!check.length) {
+          await pool.query(
+            `DELETE FROM property_rel_category WHERE category_id = ? AND property_id = ?;`,
+            [id, el.property_id]
+          );
+          return;
+        }
+      });
+
+      characteristics.forEach(async (el) => {
+        if (!el.property_id) {
+          const now = new Date();
+          const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
+
+          const [newproperty] = await pool.query(
+            `INSERT INTO property (t_created, t_updated) VALUES (?, ?)`,
+            [formatDate, formatDate]
+          );
+          const { insertId } = newproperty;
+
+          const data = [insertId, 1, el.characteristic];
+          const data2 = [insertId, id, 'enabled'];
+
+          await pool.query(
+            `INSERT INTO property_lang(property_id, language_id, name) VALUES(?)`,
+            [data]
+          );
+          await pool.query(
+            `INSERT INTO property_rel_category (property_id, category_id, status) VALUES(?)`,
+            [data2]
+          );
+
+          return;
+        }
+
+        const check = category_characteristics.filter(
+          (e) => e.property_id === el.property_id
+        );
+
+        if (check[0].name !== el.characteristic) {
+          await pool.query(
+            `UPDATE property_lang SET name = ? WHERE property_id = ? AND language_id = ?`,
+            [el.characteristic, el.property_id, 1]
+          );
+        }
+      });
+
+      return res.status(200).json('Success');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async filtration(req, res) {
     try {
       const params = req.body.params;
@@ -290,7 +364,7 @@ class categoryController {
   async getCharacteristicsCategoryByUrl(req, res) {
     try {
       const [rows, filds] = await pool.query(
-        Queries.getCharacteristicsCategory + `AND cl.url LIKE ?`,
+        Queries.getCharacteristicsCategoryByUrl,
         [req.params.url]
       );
       return res.status(200).json(rows);
@@ -302,7 +376,7 @@ class categoryController {
   async getCharacteristicsCategoryById(req, res) {
     try {
       const [rows, filds] = await pool.query(
-        Queries.getCharacteristicsCategory + `AND cl.category_id = ?`,
+        Queries.getCharacteristicsCategory + `AND category_id = ?`,
         [req.params.id]
       );
       return res.status(200).json(rows);
@@ -338,7 +412,7 @@ class categoryController {
   async getFiltrationCharacteristictAndParams(req, res) {
     try {
       const [rows, filds] = await pool.query(
-        Queries.getCharacteristicsCategory + `AND cl.url LIKE ?`,
+        Queries.getCharacteristicsCategoryByUrl,
         [req.params.url]
       );
 

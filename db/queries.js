@@ -4,6 +4,15 @@ const Queries = {
   VALUES (?);
   `,
 
+  checkProductCharacteristic: `
+  SELECT DISTINCT prpv.property_value_id, name, property_id FROM product_rel_property_value prpv
+  JOIN property_value_lang pvl
+  ON pvl.property_value_id = prpv.property_value_id
+  WHERE prpv.product_id = ?
+  AND prpv.property_value_id = ?
+  AND pvl.language_id = 1
+  `,
+
   createCategory: `
     INSERT INTO category (parent_id, status)
     VALUES (?, ?);
@@ -381,21 +390,30 @@ WHERE cl.language_id = 1
     `,
 
   getCharacteristicsCategory: `
-        SELECT DISTINCT 
-          pl.name AS characteristic,
-          pl.property_id
-        FROM product_rel_property_value prpv
-        JOIN property_value_lang pvl 
-        ON pvl.property_value_id = prpv.property_value_id
-        JOIN property_lang pl 
-        ON pl.property_id = prpv.property_id
-        JOIN product_category pc
-        ON pc.product_id = prpv.product_id
-        JOIN category_lang cl 
-        ON cl.category_id = pc.category_id
-        WHERE pl.language_id = pvl.language_id = 1
-        AND prpv.status LIKE 'enabled'
+  SELECT 
+	pl.name AS characteristic,
+	pl.property_id 
+FROM property_rel_category prc
+JOIN property_lang pl
+	ON pl.property_id = prc.property_id
+WHERE prc.status = "enabled"
+AND pl.language_id = 1
         
+`,
+
+  getCharacteristicsCategoryByUrl: `
+SELECT 
+	pl.name AS characteristic,
+	pl.property_id 
+FROM property_rel_category prc
+JOIN property_lang pl
+	ON pl.property_id = prc.property_id
+JOIN category_lang cl
+	ON cl.category_id = prc.category_id
+WHERE status = "enabled"
+AND pl.language_id = 1
+AND cl.language_id = 1
+AND cl.url = ?
 `,
 
   getFiltrationParamsByCategory: `

@@ -14,6 +14,11 @@ categoryRouter.get(
 );
 
 categoryRouter.post(
+  '/characteristics/:id',
+  categoryController.updateCategoryCharacteristics
+);
+
+categoryRouter.post(
   '/test/:url',
   currencyFiltration,
   categoryController.filtration
