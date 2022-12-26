@@ -1,11 +1,9 @@
 function languageMiddleware(req, res, next) {
   // Получаем значение параметра language из URL-запроса
-  const language = req.params.language;
+  const { lan } = req.query;
 
   // Если language присутствует, то записываем его в res.locales.language
-  if (language) {
-    res.locales.language = language;
-  }
+  if (lan) res.locals.language_id = lan === 'ru' ? 1 : 2;
 
   // Переходим к следующему middleware
   next();

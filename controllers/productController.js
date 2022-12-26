@@ -37,83 +37,109 @@ const multi_upload = multer({
 }).array('uploadImages', 10);
 
 class productController {
-  async getProductById(req, res) {
+  async test(req, res) {
     try {
-      const [rows, filds] = await pool.query(
-        Queries.getOneProduct + `AND pl.product_id = ?`,
-        [req.params.id]
-      );
-      return res.status(200).json(rows);
+      const { id } = req.params;
+      const product_id = id;
+      const { language_id } = res.locals;
+      const data = req.body;
+
+      const q = `
+      SELECT pvl.name, prpv.property_id, prpv.property_value_id 
+      FROM property_value_lang pvl 
+      JOIN product_rel_property_value prpv 
+        ON prpv.property_value_id = pvl.property_value_id 
+      WHERE prpv.product_id = ?
+      AND pvl.language_id = ?
+      AND prpv.status = 'enabled'
+      `;
+
+      const [productCharacteristics] = await pool.query(q, [
+        product_id,
+        language_id,
+      ]);
+
+      // сравниваю поступившие данные
+      data.forEach(async (el) => {
+        if (!el.value.length) {
+          await pool.query(
+            `UPDATE product_rel_property_value SET status = 'disabled' WHERE product_id = ? AND property_id = ?;`,
+            [product_id, el.property_id]
+          );
+
+          return;
+        }
+
+        const check = productCharacteristics.find(
+          (e) => e.property_id === el.property_id
+        );
+
+        if (!check) {
+          const [rows] = await pool.query(
+            `SELECT property_value_id FROM property_value_lang WHERE name = ?`,
+            [el.value]
+          );
+
+          if (rows.length > 0) {
+            await pool.query(
+              `INSERT INTO product_rel_property_value(product_id, property_id, property_value_id, status) VALUES(?, ?, ?, ?)`,
+              [product_id, el.property_id, rows[0].property_value_id, 'enabled']
+            );
+          } else {
+            const now = new Date();
+            const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
+
+            const [rows2] = await pool.query(
+              `INSERT INTO property_value(t_created, t_updated, property_id) VALUES(?, ?, ?)`,
+              [formatDate, formatDate, el.property_id]
+            );
+            await pool.query(
+              `INSERT INTO property_value_lang(property_value_id, language_id, name) VALUES(?, ?, ?)`,
+              [rows2.insertId, language_id, el.value]
+            );
+            await pool.query(
+              `INSERT INTO product_rel_property_value(product_id, property_id, property_value_id, status) VALUES(?, ?, ?, ?)`,
+              [product_id, el.property_id, rows2.insertId, 'enabled']
+            );
+          }
+          return;
+        }
+
+        if (el.value !== check.name) {
+          const now = new Date();
+          const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
+
+          const [rows2] = await pool.query(
+            `INSERT INTO property_value(t_created, t_updated, property_id) VALUES(?, ?, ?)`,
+            [formatDate, formatDate, el.property_id]
+          );
+
+          await pool.query(
+            `INSERT INTO property_value_lang(property_value_id, language_id, name) VALUES(?, ?, ?)`,
+            [rows2.insertId, language_id, el.value]
+          );
+
+          await pool.query(
+            `UPDATE product_rel_property_value SET property_value_id = ? WHERE product_id = ? AND property_id = ? AND status = 'enabled';`,
+            [rows2.insertId, product_id, el.property_id]
+          );
+        }
+      });
+
+      return res.status(200).json('Success');
     } catch (error) {
       console.log(error);
     }
   }
 
-  async changeProductCharacteristics(req, res) {
+  async getProductById(req, res) {
     try {
-      const params = req.body;
-      const { id } = req.params;
-
-      console.log(params);
-
-      await pool.query(
-        `DELETE FROM product_rel_property_value WHERE product_id = ?`,
-        [id]
+      const { language_id } = res.locals;
+      const [rows, filds] = await pool.query(
+        Queries.getOneProduct + `AND pl.product_id = ?`,
+        [language_id, language_id, req.params.id]
       );
-
-      params.forEach(async (el) => {
-        if (!el.value.length) {
-          await pool.query(
-            `UPDATE product_rel_property_value SET status = 'disabled' WHERE product_id = ? AND property_value_id = ?`,
-            [id, el.property_id]
-          );
-          return;
-        }
-
-        // проверка существует ли такое значение
-        const [rows2, filds2] = await pool.query(
-          `SELECT property_value_id FROM property_value_lang WHERE name = ? AND language_id = 1`,
-          [el.value]
-        );
-
-        if (rows2.length) {
-          const values = [
-            id,
-            el.property_id,
-            rows2[0].property_value_id,
-            'enabled',
-          ];
-
-          await pool.query(
-            `INSERT INTO product_rel_property_value(product_id, property_id, property_value_id, status) VALUES (?)`,
-            [values]
-          );
-        } else {
-          const now = new Date();
-          const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
-
-          const values = [formatDate, formatDate, el.property_id, 0];
-          const [rows3, filds3] = await pool.query(
-            `INSERT INTO property_value(t_created, t_updated, property_id, sort) VALUES(?)`,
-            [values]
-          );
-
-          const { insertId } = rows3;
-
-          const values2 = [insertId, 1, el.value];
-          await pool.query(
-            `INSERT INTO property_value_lang(property_value_id, language_id, name) VALUES(?)`,
-            [values2]
-          );
-
-          const values3 = [id, el.property_id, insertId, 'enabled'];
-          await pool.query(
-            `INSERT INTO product_rel_property_value(product_id, property_id, property_value_id, status) VALUES (?)`,
-            [values3]
-          );
-        }
-      });
-      return res.status(200).json('success');
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
@@ -144,7 +170,7 @@ class productController {
     }
   }
 
-  async getProductsPropertiesProductsId(req, res) {
+  async getProductsRelationProductsById(req, res) {
     try {
       const q = `SELECT distinct relation_product_id AS product_id FROM product_rel_product prp WHERE prp.product_id = ?`;
       const [rows, filds] = await pool.query(q, [req.params.id]);
@@ -156,7 +182,12 @@ class productController {
 
   async getProductsWithDiscount(req, res) {
     try {
-      const [rows, filds] = await pool.query(Queries.getProductsWithDiscount);
+      const { language_id } = res.locals;
+
+      const [rows, filds] = await pool.query(Queries.getProductsWithDiscount, [
+        language_id,
+        language_id,
+      ]);
       return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
@@ -165,7 +196,12 @@ class productController {
 
   async getNewProducts(req, res) {
     try {
-      const [rows, filds] = await pool.query(Queries.getNewProducts);
+      const { language_id } = res.locals;
+
+      const [rows, filds] = await pool.query(Queries.getNewProducts, [
+        language_id,
+        language_id,
+      ]);
       return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
@@ -174,11 +210,12 @@ class productController {
 
   async getOneProductByUrl(req, res) {
     try {
+      const { language_id } = res.locals;
       const url = req.params.url.replace('tovar_', '');
 
       const [rows, filds] = await pool.query(
         Queries.getOneProduct + `AND pl.url = ?`,
-        [url]
+        [language_id, language_id, url]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -189,9 +226,12 @@ class productController {
   async getProductsByIds(req, res) {
     try {
       const { ids } = req.body;
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getProductsByIds +
-          `AND pl.product_id IN(${Array.from(ids).join(', ')})`
+          `AND pl.product_id IN(${Array.from(ids).join(', ')})`,
+        [language_id, language_id]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -201,9 +241,11 @@ class productController {
 
   async getProductCharacteristicsById(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getProductCharacteristicsById,
-        [req.params.id]
+        [language_id, language_id, req.params.id]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -213,9 +255,11 @@ class productController {
 
   async getProductsPropertiesProducts(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getProductsPropertiesProducts + `AND prp.product_id IN(?)`,
-        [req.params.id]
+        [language_id, language_id, req.params.id]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -253,9 +297,11 @@ class productController {
 
   async getCompareProductCharacteristicsValuesById(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getCompareProductCharacteristicsValuesById,
-        [req.params.id]
+        [language_id, language_id, req.params.id]
       );
       return res.status(200).json({
         [req.params.id]: rows,
@@ -267,6 +313,8 @@ class productController {
 
   async getPropertiesCompareProducts(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const { data } = req.body;
       if (!data.length) {
         return res.status(200).json([]);
@@ -274,7 +322,8 @@ class productController {
 
       const [rows, filds] = await pool.query(
         Queries.getProductsPropertiesProducts +
-          ` AND prp.product_id IN(${Array.from(data).join(', ')})`
+          ` AND prp.product_id IN(${Array.from(data).join(', ')})`,
+        [language_id, language_id]
       );
       return res.status(200).json({
         [req.params.id]: rows,
@@ -289,8 +338,26 @@ class productController {
       const token = req.cookies.access_token;
       if (!token) return res.status(401).json('Not authenticated.');
 
+      const { language_id } = res.locals;
+
       const { id } = req.params;
-      const { product, photos } = req.body;
+      const { product } = req.body;
+
+      const [productInfo] = await pool.query(
+        `SELECT category_id FROM product_category WHERE product_id = ?`,
+        [id]
+      );
+
+      if (productInfo[0].category_id !== product.category_id) {
+        await pool.query(
+          `UPDATE product_rel_property_value SET status = 'disabled' WHERE product_id = ?`,
+          [id]
+        );
+        await pool.query(
+          `UPDATE product_category SET category_id = ? WHERE product_id = ?`,
+          [product.category_id, id]
+        );
+      }
 
       const languageParams = [
         product.product_name,
@@ -317,6 +384,7 @@ class productController {
         await pool.query(Queries.updateProductLanguage, [
           ...languageParams,
           id,
+          language_id,
         ]);
 
         await pool.query(Queries.updateProductPrice, [...priceParams, id]);
@@ -408,6 +476,8 @@ class productController {
 
         const product = req.body;
 
+        const { language_id } = res.locals;
+
         const now = new Date();
         const formatDate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
 
@@ -431,6 +501,7 @@ class productController {
           product.meta_keywords,
           product.meta_description,
           insertId,
+          language_id,
         ];
 
         const priceParams = [
@@ -456,7 +527,11 @@ class productController {
 
   async getAllManufacturers(req, res) {
     try {
-      const [rows, filds] = await pool.query(Queries.getAllManufacturers);
+      const { language_id } = res.locals;
+
+      const [rows, filds] = await pool.query(Queries.getAllManufacturers, [
+        language_id,
+      ]);
       return res.status(200).json(rows);
     } catch (error) {
       console.log(error);

@@ -4,7 +4,8 @@ const { Queries } = require('../db/queries.js');
 class newsController {
   async getAllNews(req, res) {
     try {
-      const [rows, filds] = await pool.query(Queries.getAllNews);
+      const { language_id } = res.locals;
+      const [rows, filds] = await pool.query(Queries.getAllNews, [language_id]);
       return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
@@ -13,7 +14,10 @@ class newsController {
 
   async getOneNewById(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(Queries.getOneNewById, [
+        language_id,
         req.params.id,
       ]);
       return res.status(200).json(rows);

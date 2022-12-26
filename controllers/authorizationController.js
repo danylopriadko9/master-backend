@@ -32,7 +32,7 @@ class authorizationController {
         formatDate,
         formatDate,
         `user`,
-        null,
+        1,
       ];
 
       await pool.query(q2, [values]);

@@ -4,6 +4,8 @@ const { Queries } = require('../db/queries.js');
 class searchController {
   async getSearchProductsByValues(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const group_url = req.params.groupUrl;
       const search_value = `%${req.params.searchValue}%`;
       const page = req.params.page;
@@ -21,6 +23,8 @@ class searchController {
           const [rows2, filds2] = await pool.query(
             Queries.getSearchProductsInSubcategory,
             [
+              language_id,
+              language_id,
               cleact_url,
               search_value,
               search_value,
@@ -35,6 +39,8 @@ class searchController {
             Queries.getSearchProductsInSubcategory +
               ` LIMIT ${startingLimit}, ${qtyItemsPage}`,
             [
+              language_id,
+              language_id,
               cleact_url,
               search_value,
               search_value,
@@ -53,7 +59,7 @@ class searchController {
           const clean_url = group_url.replace('group_', '');
           const [rows, filds] = await pool.query(
             Queries.getSearchProductsInParentGroup,
-            [search_value, clean_url]
+            [language_id, search_value, language_id, clean_url]
           );
 
           return res.status(200).json({
@@ -66,7 +72,13 @@ class searchController {
       if (search_value && !group_url) {
         const [rows, filds] = await pool.query(
           Queries.getSearchProductsFromMainPage,
-          [search_value, search_value, search_value.replace('%', '')]
+          [
+            language_id,
+            language_id,
+            search_value,
+            search_value,
+            search_value.replace('%', ''),
+          ]
         );
 
         const numberOfPages = Math.ceil(rows.length / qtyItemsPage);
@@ -74,7 +86,13 @@ class searchController {
         const [rows2, filds2] = await pool.query(
           Queries.getSearchProductsFromMainPage +
             ` LIMIT ${startingLimit}, ${qtyItemsPage}`,
-          [search_value, search_value, search_value.replace('%', '')]
+          [
+            language_id,
+            language_id,
+            search_value,
+            search_value,
+            search_value.replace('%', ''),
+          ]
         );
 
         return res.status(200).json({

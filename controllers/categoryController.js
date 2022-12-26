@@ -10,6 +10,8 @@ class categoryController {
       const { id } = req.params;
       const characteristics = req.body;
 
+      const { language_id } = res.locals;
+
       const q = `
       SELECT pl.property_id, name FROM master.property_rel_category prc
       JOIN property_lang pl
@@ -18,7 +20,8 @@ class categoryController {
       AND category_id = ?
       AND language_id = ?
       `;
-      const [category_characteristics] = await pool.query(q, [id, 1]);
+
+      const [category_characteristics] = await pool.query(q, [id, language_id]);
 
       category_characteristics.forEach(async (el) => {
         const check = characteristics.filter(
@@ -27,8 +30,14 @@ class categoryController {
 
         if (!check.length) {
           await pool.query(
-            `DELETE FROM property_rel_category WHERE category_id = ? AND property_id = ?;`,
-            [id, el.property_id]
+            `
+            DELETE prc 
+            FROM property_rel_category prc 
+              JOIN property_lang pl
+              ON pl.property_id = prc.property_id
+              WHERE prc.category_id = ? AND prc.property_id = ? AND pl.language_id = ?;
+            `,
+            [id, el.property_id, language_id]
           );
           return;
         }
@@ -45,7 +54,7 @@ class categoryController {
           );
           const { insertId } = newproperty;
 
-          const data = [insertId, 1, el.characteristic];
+          const data = [insertId, language_id, el.characteristic];
           const data2 = [insertId, id, 'enabled'];
 
           await pool.query(
@@ -67,7 +76,7 @@ class categoryController {
         if (check[0].name !== el.characteristic) {
           await pool.query(
             `UPDATE property_lang SET name = ? WHERE property_id = ? AND language_id = ?`,
-            [el.characteristic, el.property_id, 1]
+            [el.characteristic, el.property_id, language_id]
           );
         }
       });
@@ -85,6 +94,8 @@ class categoryController {
       const keys = Object.keys(params);
       const values = Object.values(params);
 
+      const { language_id } = res.locals;
+
       // если нету продуктов подходящих по цене и производителю возващаем пустой обьект
       if (!res.locals.filtred_ids.length) {
         return res.status(200).json([]);
@@ -92,10 +103,9 @@ class categoryController {
 
       // проверна на наличие параметров фильтрации и возват отфильтрованных по цене и производителю товаров
       if (!keys.length && res.locals.filtred_ids.length) {
-        console.log('dsdds');
         const [rows3, fields3] = await pool.query(
           Queries.getProductsByIds + `AND pc.product_id IN(?)`,
-          [res.locals.filtred_ids]
+          [language_id, language_id, res.locals.filtred_ids]
         );
 
         return res.status(200).json(rows3);
@@ -109,11 +119,14 @@ class categoryController {
         ON p.id = pc.product_id
       JOIN category_lang cl
         ON pc.category_id = cl.category_id
+      JOIN product_lang pl
+        ON pl.product_id = p.id
       AND cl.url = ? -- достаем url из запроса
       AND prpv.status = 'enabled'
       AND property_id = ? -- эти значение будут меняться
       AND property_value_id = ? --
       AND p.id IN (?)
+      AND pl.language_id = ?
       `;
 
       let result = [];
@@ -124,6 +137,7 @@ class categoryController {
           el,
           values[i],
           res.locals.filtred_ids,
+          language_id,
         ]);
 
         if (!result.length) {
@@ -143,9 +157,9 @@ class categoryController {
       }
 
       // ищем подходящие продукты по айди
-      const [rows3, fields3] = await pool.query(
+      const [rows3] = await pool.query(
         Queries.getProductsByIds + 'AND pc.product_id IN (?)',
-        [result]
+        [language_id, language_id, result]
       );
 
       // конечный возврат продуктов
@@ -157,6 +171,8 @@ class categoryController {
 
   async createCategory(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const {
         parent_id,
         name,
@@ -190,14 +206,14 @@ class categoryController {
         meta_title,
         meta_keywords,
         meta_description,
-        1,
+        language_id,
       ];
 
-      const [rows2, filds2] = await pool.query(Queries.createCategoryLang, [
+      const [rows2] = await pool.query(Queries.createCategoryLang, [
         create_data,
       ]);
 
-      return res.status(200).json('Category was created');
+      return res.status(200).json(rows.insertId);
     } catch (error) {
       console.log(error);
     }
@@ -205,14 +221,14 @@ class categoryController {
 
   async updateCategory(req, res) {
     try {
-      console.log('dsds');
       const { name, url, meta_title, meta_keywords, meta_description } =
         req.body;
 
       const { id } = req.params;
+      const { language_id } = res.locals;
 
       const [checkUrl, fileds3] = await pool.query(
-        'select category_id from category_lang where url = ?',
+        'select cl.category_id from category_lang cl where cl.url = ?',
         [url]
       );
       if (checkUrl.length && Number(checkUrl[0].category_id) !== Number(id)) {
@@ -228,6 +244,7 @@ class categoryController {
         meta_keywords,
         meta_description,
         id,
+        language_id,
       ]);
       return res.status(200).json('Category was updated');
     } catch (error) {
@@ -276,7 +293,11 @@ class categoryController {
 
   async getAllCategories(req, res) {
     try {
-      const [rows, filds] = await pool.query(Queries.getAllCategories);
+      const { language_id } = res.locals;
+
+      const [rows, filds] = await pool.query(Queries.getAllCategories, [
+        language_id,
+      ]);
       return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
@@ -285,7 +306,11 @@ class categoryController {
 
   async getProductsByCategory(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(Queries.getProductsByCategory, [
+        language_id,
+        language_id,
         req.params.url,
       ]);
       return res.status(200).json(rows);
@@ -296,11 +321,15 @@ class categoryController {
 
   async getProductsFromOnePageByCategory(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const page = req.params.page;
       const qtyItemsPage = 8;
       const startingLimit = (page - 1) * qtyItemsPage;
 
       const [rows, filds] = await pool.query(Queries.getProductsByCategory, [
+        language_id,
+        language_id,
         req.params.url,
       ]);
 
@@ -309,7 +338,7 @@ class categoryController {
 
       const [rows2, fields2] = await pool.query(
         Queries.getProductsFromOnePageByCategory,
-        [req.params.url, startingLimit, qtyItemsPage]
+        [language_id, language_id, req.params.url, startingLimit, qtyItemsPage]
       );
       return res.status(200).json({
         data: rows2,
@@ -323,7 +352,11 @@ class categoryController {
 
   async getSubcategoryProductsByUrl(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(Queries.getProductsByCategory, [
+        language_id,
+        language_id,
         req.params.url,
       ]);
       return res.status(200).json(rows);
@@ -337,12 +370,14 @@ class categoryController {
       const { url } = req.params;
       const { brands } = req.body;
 
+      const { language_id } = res.locals;
+
       let q = Queries.getFiltredProductsByManufacturerAndCategory;
 
       if (brands && brands.length) {
         q += ` AND p.manufacturer_id IN(${brands.join(', ')})`;
       }
-      const [rows, filds] = await pool.query(q, [url]);
+      const [rows, filds] = await pool.query(q, [url, language_id]);
       return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
@@ -351,9 +386,11 @@ class categoryController {
 
   async getManufacturersAndQtyOfProducts(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getManufacturersAndQtyOfProducts,
-        [req.params.url]
+        [language_id, language_id, language_id, req.params.url]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -363,9 +400,11 @@ class categoryController {
 
   async getCharacteristicsCategoryByUrl(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getCharacteristicsCategoryByUrl,
-        [req.params.url]
+        [language_id, language_id, req.params.url]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -375,10 +414,12 @@ class categoryController {
 
   async getCharacteristicsCategoryById(req, res) {
     try {
+      const { language_id } = res.locals;
       const [rows, filds] = await pool.query(
         Queries.getCharacteristicsCategory + `AND category_id = ?`,
-        [req.params.id]
+        [language_id, req.params.id]
       );
+
       return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
@@ -387,9 +428,11 @@ class categoryController {
 
   async getFiltrationParamsByCategory(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getFiltrationParamsByCategory,
-        [req.params.url]
+        [req.params.url, language_id, language_id, language_id]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -399,9 +442,11 @@ class categoryController {
 
   async getSubcategoriesByCategoryUrl(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getSubcategoriesByCategoryUrl,
-        [req.params.url]
+        [language_id, req.params.url]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -411,14 +456,16 @@ class categoryController {
 
   async getFiltrationCharacteristictAndParams(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getCharacteristicsCategoryByUrl,
-        [req.params.url]
+        [language_id, language_id, req.params.url]
       );
 
       const [rows2, filds2] = await pool.query(
         Queries.getFiltrationParamsByCategory,
-        [req.params.url]
+        [req.params.url, language_id, language_id, language_id]
       );
 
       const response_obj = {};

@@ -4,14 +4,17 @@ const { Queries } = require('../db/queries.js');
 class historyController {
   async getHistoryByProductUrl(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(Queries.getHistoryByProductUrl, [
         req.params.url,
+        language_id,
       ]);
 
       if (!rows.length) {
         const [rows2, filds2] = await pool.query(
           Queries.getHistoryProductInParentGroupByUrls,
-          [url]
+          [url, language_id, language_id]
         );
         return res.status(200).json(rows2);
       } else return res.status(200).json(rows);
@@ -22,9 +25,11 @@ class historyController {
 
   async getHistoryProductInParentGroupByUrls(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(
         Queries.getHistoryProductInParentGroupByUrls,
-        [req.params.url]
+        [req.params.url, language_id, language_id]
       );
       return res.status(200).json(rows);
     } catch (error) {
@@ -34,8 +39,11 @@ class historyController {
 
   async getHistoryByGroupUrl(req, res) {
     try {
+      const { language_id } = res.locals;
+
       const [rows, filds] = await pool.query(Queries.getHistoryByGroupUrl, [
         req.params.url,
+        language_id,
       ]);
       return res.status(200).json(rows);
     } catch (error) {

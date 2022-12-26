@@ -1,6 +1,5 @@
 app.post('/api/upload', (req, res) => {
   multi_upload(req, res, function (err) {
-    console.log(req.files);
     //multer error
     if (err instanceof multer.MulterError) {
       console.log(err);

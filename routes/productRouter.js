@@ -5,10 +5,8 @@ const fileMiddleware = require('../middlewares/file.js');
 productRouter.get('/discount', productController.getProductsWithDiscount);
 
 productRouter.post('/relation/:id', productController.changeRelationProducts);
-productRouter.post(
-  '/characteristics/:id',
-  productController.changeProductCharacteristics
-);
+
+productRouter.post('/characteristics/:id', productController.test);
 
 productRouter.get('/new', productController.getNewProducts);
 
@@ -18,18 +16,25 @@ productRouter.post('/', productController.getProductsByIds);
 
 productRouter.get(
   '/characteristics/:id',
+
   productController.getProductCharacteristicsById
 );
-productRouter.get('/id/:id', productController.getProductById);
+productRouter.get(
+  '/id/:id',
+
+  productController.getProductById
+);
 
 productRouter.get(
   '/properties/:id',
+
   productController.getProductsPropertiesProducts
 );
 
 productRouter.get(
   '/properties/id/:id',
-  productController.getProductsPropertiesProductsId
+
+  productController.getProductsRelationProductsById
 );
 
 productRouter.get('/photos/:id', productController.getAllProductPhotosById);
@@ -46,17 +51,27 @@ productRouter.post(
 
 productRouter.get(
   '/compare/:id',
+
   productController.getCompareProductCharacteristicsValuesById
 );
 
 productRouter.post(
   '/property-compare-products',
+
   productController.getPropertiesCompareProducts
 );
 
-productRouter.get('/manufacturers', productController.getAllManufacturers);
+productRouter.get(
+  '/manufacturers',
+
+  productController.getAllManufacturers
+);
 
 productRouter.put('/:id', productController.updateProduct);
-productRouter.post('/create', productController.createProduct);
+productRouter.post(
+  '/create',
+
+  productController.createProduct
+);
 
 module.exports = productRouter;

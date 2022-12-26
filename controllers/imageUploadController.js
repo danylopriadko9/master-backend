@@ -5,9 +5,6 @@ class imageUploadController {
   async uploadCategoryImage(req, res) {
     try {
       const file = req.file?.filename || req.body.file;
-
-      console.log(req.body);
-
       await pool.query(
         `UPDATE category_image SET filename = ? WHERE category_id = ?`,
         [file, req.params.id]
