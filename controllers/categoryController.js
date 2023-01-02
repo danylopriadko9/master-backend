@@ -254,11 +254,11 @@ class categoryController {
 
   async deleteCategory(req, res) {
     try {
-      const [rows, filds] = await pool.query(
+      const [rows] = await pool.query(
         'SELECT * FROM category WHERE parent_id = ?',
         [req.params.id]
       );
-      const [rows2, filds2] = await pool.query(
+      const [rows2] = await pool.query(
         'SELECT * FROM product_category WHERE category_id = ?',
         [req.params.id]
       );

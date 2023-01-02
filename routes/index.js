@@ -21,6 +21,7 @@ router.use('/search', searchRouter);
 router.use('/users', usersRouter);
 
 router.use('/ofer', oferController.createOfer);
+
 router.use(
   '/upload/:type/:id',
   fileMiddleware.single('avatar'),

@@ -2,6 +2,7 @@ const categoryController = require('../controllers/categoryController.js');
 const { accessCheck } = require('../middlewares/accessCheck.js');
 const currencyFiltration = require('../middlewares/currencyFiltration.js');
 const categoryRouter = require('express').Router();
+const fileMiddleware = require('../middlewares/file');
 
 categoryRouter.get('/', categoryController.getAllCategories);
 categoryRouter.get(
@@ -72,12 +73,7 @@ categoryRouter.post(
 
   categoryController.createCategory
 );
-categoryRouter.put(
-  '/:id',
-  accessCheck,
-
-  categoryController.updateCategory
-);
+categoryRouter.put('/:id', accessCheck, categoryController.updateCategory);
 categoryRouter.delete(
   '/:id',
   accessCheck,

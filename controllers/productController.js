@@ -325,9 +325,7 @@ class productController {
           ` AND prp.product_id IN(${Array.from(data).join(', ')})`,
         [language_id, language_id]
       );
-      return res.status(200).json({
-        [req.params.id]: rows,
-      });
+      return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
     }
