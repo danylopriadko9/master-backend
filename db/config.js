@@ -8,6 +8,7 @@ const pool = mysql.createPool({
   password: process.env.PASSWORD,
   database: process.env.DATABASE,
   debug: false,
+  multipleStatements: true,
 });
 
 module.exports = pool.promise();

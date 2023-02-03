@@ -3,7 +3,9 @@ function languageMiddleware(req, res, next) {
   const { lan } = req.query;
 
   // Если language присутствует, то записываем его в res.locales.language
-  if (lan) res.locals.language_id = lan === 'ru' ? 1 : 2;
+  if (lan) {
+    res.locals.language_id = lan === 'ru' ? 1 : 2;
+  }
 
   // Переходим к следующему middleware
   next();

@@ -103,10 +103,11 @@ class categoryController {
 
       // проверна на наличие параметров фильтрации и возват отфильтрованных по цене и производителю товаров
       if (!keys.length && res.locals.filtred_ids.length) {
-        const [rows3, fields3] = await pool.query(
-          Queries.getProductsByIds + `AND pc.product_id IN(?)`,
-          [language_id, language_id, res.locals.filtred_ids]
-        );
+        const [rows3, fields3] = await pool.query(Queries.getProductsByIds, [
+          language_id,
+          language_id,
+          res.locals.filtred_ids,
+        ]);
 
         return res.status(200).json(rows3);
       }
@@ -157,10 +158,11 @@ class categoryController {
       }
 
       // ищем подходящие продукты по айди
-      const [rows3] = await pool.query(
-        Queries.getProductsByIds + 'AND pc.product_id IN (?)',
-        [language_id, language_id, result]
-      );
+      const [rows3] = await pool.query(Queries.getProductsByIds, [
+        language_id,
+        language_id,
+        result,
+      ]);
 
       // конечный возврат продуктов
       return res.status(200).json(rows3);
@@ -285,7 +287,8 @@ class categoryController {
       const dirents = await readdir(path.resolve() + dir, (err) => {
         if (err) throw new Error(err);
       });
-      res.redirect(`http://localhost:8000${dir}/${dirents[0]}`);
+      res.redirect(`http://react.master-ua.com/${dir}/${dirents[0]}`);
+      // localhost:8000
     } catch (error) {
       console.log(error);
     }
@@ -458,39 +461,41 @@ class categoryController {
     try {
       const { language_id } = res.locals;
 
-      const [rows, filds] = await pool.query(
+      const [characteristics, characteristicsFields] = await pool.query(
         Queries.getCharacteristicsCategoryByUrl,
         [language_id, language_id, req.params.url]
       );
 
-      const [rows2, filds2] = await pool.query(
+      const [filtrationParams, filtrationParamsFields] = await pool.query(
         Queries.getFiltrationParamsByCategory,
         [req.params.url, language_id, language_id, language_id]
       );
 
-      const response_obj = {};
+      const responseObj = {};
 
-      rows2.forEach((el) => {
-        if (response_obj.hasOwnProperty(el.property_id)) {
-          const prop_status = response_obj[el.property_id].filter(
+      filtrationParams.forEach((el) => {
+        if (responseObj.hasOwnProperty(el.property_id)) {
+          const propStatus = responseObj[el.property_id].filter(
             (e) => e.property_value_id === el.property_value_id
           );
-          if (!prop_status.length && el.name.length)
-            response_obj[el.property_id].push({
+          if (!propStatus.length && el.name.length) {
+            responseObj[el.property_id].push({
               value: el.name,
               value_id: el.property_value_id,
             });
+          }
         } else {
           if (el.name.length > 0) {
-            response_obj[el.property_id] = [
+            responseObj[el.property_id] = [
               { value: el.name, value_id: el.property_value_id },
             ];
           }
         }
       });
+
       return res.status(200).json({
-        characteriscics: rows,
-        values: response_obj,
+        characteriscics: characteristics,
+        values: responseObj,
       });
     } catch (error) {
       console.log(error);

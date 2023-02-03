@@ -258,7 +258,7 @@ class productController {
       const { language_id } = res.locals;
 
       const [rows, filds] = await pool.query(
-        Queries.getProductsPropertiesProducts + `AND prp.product_id IN(?)`,
+        Queries.getProductsPropertiesProducts,
         [language_id, language_id, req.params.id]
       );
       return res.status(200).json(rows);
@@ -272,6 +272,7 @@ class productController {
       const [rows, filds] = await pool.query(Queries.getAllProductPhotosById, [
         req.params.id,
       ]);
+
       return res.status(200).json(rows);
     } catch (error) {
       console.log(error);
@@ -289,7 +290,11 @@ class productController {
 
       const { filename } = rows[0];
 
-      return res.status(200).json(`/product/${req.params.id}/${filename}`);
+      return res
+        .status(200)
+        .json(
+          `http://localhost:8000/static/product/${req.params.id}/${filename}`
+        );
     } catch (error) {
       console.log(error);
     }
@@ -474,6 +479,8 @@ class productController {
 
         const product = req.body;
 
+        console.log(product.category_id, req.body.category_id);
+
         const { language_id } = res.locals;
 
         const now = new Date();
@@ -490,6 +497,8 @@ class productController {
           productParams,
         ]);
         const { insertId } = rows;
+
+        await fs.promises.mkdir(`static/product/${insertId}`);
 
         const languageParams = [
           product.product_name,

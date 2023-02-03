@@ -16,24 +16,17 @@ productRouter.post('/', productController.getProductsByIds);
 
 productRouter.get(
   '/characteristics/:id',
-
   productController.getProductCharacteristicsById
 );
-productRouter.get(
-  '/id/:id',
-
-  productController.getProductById
-);
+productRouter.get('/id/:id', productController.getProductById);
 
 productRouter.get(
   '/properties/:id',
-
   productController.getProductsPropertiesProducts
 );
 
 productRouter.get(
   '/properties/id/:id',
-
   productController.getProductsRelationProductsById
 );
 
@@ -57,7 +50,6 @@ productRouter.get(
 
 productRouter.post(
   '/property-compare-products',
-
   productController.getPropertiesCompareProducts
 );
 

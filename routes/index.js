@@ -44,7 +44,7 @@ router.use('/currency', (req, res) => {
             params: { trophies: true },
           })
           .then((response_ruble) => {
-            ruble_currency = response_ruble.data[0];
+            const ruble_currency = response_ruble.data[0];
             res.status(200).json([
               ...response_currency.data,
               {

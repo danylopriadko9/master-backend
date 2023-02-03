@@ -63,7 +63,6 @@ categoryRouter.get(
 
 categoryRouter.get(
   '/filter/category/:url',
-
   categoryController.getFiltrationCharacteristictAndParams
 );
 

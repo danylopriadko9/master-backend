@@ -4,6 +4,29 @@ const Queries = {
   VALUES (?);
   `,
 
+  getAllProductPhotos: `
+  SELECT filename FROM product_image pi
+  WHERE pi.product_id in (?)
+  ORDER BY type DESC
+  `,
+
+  getAllProductPhotosByUrl: `
+  SELECT DISTINCT filename FROM product_image pi
+  JOIN product_lang pl
+    ON pl.product_id = pi.product_id
+    WHERE pl.url = ?
+    ORDER BY type DESC
+  `,
+
+  getProductDescription: `
+  SELECT description FROM product_lang pl WHERE pl.product_id = ? AND pl.language_id = ?
+  `,
+
+  getProductDescriptionByUrl: `
+  SELECT description FROM product_lang pl WHERE pl.url = ? AND pl.language_id = ?
+
+  `,
+
   createCategory: `
     INSERT INTO category (parent_id, status)
     VALUES (?, ?);
@@ -45,7 +68,7 @@ const Queries = {
 
   createProductCategory: `
     INSERT INTO product_category (product_id, category_id)
-    VALUES (?);
+    VALUES (?, ?);
   `,
 
   getManufacturersAndPriceByCategory: `
@@ -78,20 +101,106 @@ WHERE cl.url = ?
 
   getAllCategories: `
   SELECT 
-  c.id, 
+  cl.category_id, 
   cl.name, 
   cl.url, 
-  cl.description, 
-  cl.meta_title, 
-  cl.meta_keywords, 
-  cl.meta_description,
-  c.parent_id
+  c.parent_id,
+  ci.filename
 FROM category c
 JOIN category_lang cl
-WHERE c.id = cl.category_id
+ON c.id = cl.category_id
+JOIN category_image ci
+	ON ci.category_id = c.id
 AND url IS NOT NULL
-AND status = 1 
 AND cl.language_id = ?
+  `,
+
+  getSearchedProductsInCategory: `
+  SELECT 
+	pl.product_id,
+    pl.name as product_name,
+    pl.url,
+    pc.category_id,
+    cl.name as category_name,
+    c.iso,
+    pp.base_price,
+    pp.discount_percent,
+    pi.filename
+FROM product_lang pl
+JOIN product_category pc
+	ON pc.product_id = pl.product_id
+JOIN product_image pi
+	ON pi.product_id = pl.product_id
+JOIN category_lang cl
+	ON cl.category_id = pc.category_id
+JOIN product_price pp
+	ON pp.product_id = pl.product_id
+JOIN currency c
+	ON c.id = pp.currency_id
+WHERE cl.language_id = ?
+AND pl.language_id = ?
+AND pl.name LIKE (?)
+AND cl.category_id = ?
+  `,
+
+  getCategoryProducts: `
+  SELECT 
+	  pl.product_id,
+    pl.name as product_name,
+    pl.url,
+    pc.category_id,
+    cl.name as category_name,
+    c.iso,
+    pp.base_price,
+    pp.discount_percent,
+    pi.filename
+FROM product_lang pl
+JOIN product_category pc
+	ON pc.product_id = pl.product_id
+JOIN product_image pi
+	ON pi.product_id = pl.product_id
+JOIN category_lang cl
+	ON cl.category_id = pc.category_id
+JOIN product_price pp
+	ON pp.product_id = pl.product_id
+JOIN currency c
+	ON c.id = pp.currency_id
+WHERE cl.language_id = ?
+AND pl.language_id = ?
+AND pi.type = 'main'
+AND cl.url = ?
+  `,
+
+  getSearchedProducts: `
+  SELECT 
+	pl.product_id,
+    pl.name as product_name,
+    pl.url,
+    pc.category_id,
+    cl.name as category_name,
+    c.iso,
+    pp.base_price,
+    pp.discount_percent,
+    pi.filename
+FROM product_lang pl
+JOIN product_category pc
+	ON pc.product_id = pl.product_id
+JOIN product_image pi
+	ON pi.product_id = pl.product_id
+JOIN category_lang cl
+	ON cl.category_id = pc.category_id
+JOIN product_price pp
+	ON pp.product_id = pl.product_id
+JOIN currency c
+	ON c.id = pp.currency_id
+WHERE cl.language_id = ?
+AND pl.language_id = ?
+AND pl.name LIKE (?)
+AND pi.type = 'main'
+OR cl.name LIKE (?)
+AND cl.language_id = ?
+AND pl.language_id = ?
+AND pi.type = 'main'
   `,
 
   getOneProduct: `
@@ -238,9 +347,8 @@ AND cl.language_id = ?
     pi.filename, 
     pc.product_id,
     pc.category_id,
-    c.id,
     c.iso,
-    cl.url as category_url
+    cl.category_id
   FROM product_category pc
   JOIN product_lang pl 
     ON pc.product_id = pl.product_id
@@ -258,49 +366,52 @@ AND cl.language_id = ?
     `,
 
   getNewProducts: `
-    SELECT distinct
-    pl.name as product_name, 
-      cl.name as category_name, 
-      pl.url, 
-      pp.base_price, 
-      pp.discount_percent, 
-      pc.product_id,
-      cl.category_id,
-      c.id,
-      c.iso,
-      cl.url as category_url
-  FROM product_category pc
-  JOIN product_lang pl 
-    ON pc.product_id = pl.product_id
-  JOIN category_lang cl 
-    ON pc.category_id = cl.category_id
-  JOIN product_price pp 
-    ON pc.product_id = pp.product_id
-  JOIN product_image pi 
-    ON pi.product_id = pc.product_id
-  JOIN product p 
-    ON pc.product_id = p.id
-  JOIN currency c
-    ON c.id = pp.currency_id
-  WHERE pl.language_id = ?
-  AND cl.language_id = ?
-  ORDER BY p.t_created DESC
-  LIMIT 20
+  SELECT distinct
+  pl.name as product_name, 
+cl.name as category_name, 
+pl.url, 
+pp.base_price, 
+pp.discount_percent, 
+pc.product_id,
+c.iso,
+  pi.filename,
+  cl.category_id
+FROM product_category pc
+JOIN product_lang pl 
+  ON pc.product_id = pl.product_id
+JOIN category_lang cl
+  ON cl.category_id = pc.category_id
+JOIN product_price pp 
+  ON pc.product_id = pp.product_id
+JOIN product_image pi 
+  ON pi.product_id = pc.product_id
+JOIN product p 
+  ON pc.product_id = p.id
+JOIN currency c
+  ON c.id = pp.currency_id
+WHERE pl.language_id = ?
+AND cl.language_id = ?
+AND pi.type = 'main'
+ORDER BY p.t_created DESC
+LIMIT 20
     `,
 
   getProductsByIds: `
-    SELECT distinct
-      pl.name as product_name,
-      cl.name as category_name,
-      pl.url,
-      pp.base_price,
-      pp.discount_percent,
-      pc.product_id,
-      c.id,
-      c.iso
+  SELECT distinct
+  pl.name as product_name,
+  cl.name as category_name,
+  pl.url,
+  pp.base_price,
+  pp.discount_percent,
+  pc.product_id,
+  c.iso,
+  pi.filename,
+  cl.category_id
 FROM product_category pc
 JOIN product_lang pl
 ON pc.product_id = pl.product_id
+JOIN product_image pi 
+ON pi.product_id = pc.product_id
 JOIN category_lang cl
 ON pc.category_id = cl.category_id
 JOIN product_price pp
@@ -311,6 +422,214 @@ JOIN currency c
 ON c.id = pp.currency_id
 WHERE cl.language_id = ?
 AND pl.language_id = ?
+AND pi.type = 'main'
+AND pc.product_id IN (?)
+    `,
+
+  getProductsByIdsLike: `
+  SELECT distinct
+  pl.name as product_name,
+  cl.name as category_name,
+  pl.url,
+  pp.base_price,
+  pp.discount_percent,
+  pc.product_id,
+  c.iso,
+  pi.filename
+FROM product_category pc
+JOIN product_lang pl
+ON pc.product_id = pl.product_id
+JOIN product_image pi 
+ON pi.product_id = pc.product_id
+JOIN category_lang cl
+ON pc.category_id = cl.category_id
+JOIN product_price pp
+ON pc.product_id = pp.product_id
+JOIN product p
+ON pc.product_id = p.id
+JOIN currency c
+ON c.id = pp.currency_id
+WHERE cl.language_id = ?
+AND pl.language_id = ?
+AND pi.type = 'main'
+AND pc.product_id LIKE (?)
+  `,
+
+  getProductsByManufacturerIdAndCategoryUrl: `
+    SELECT distinct
+    pl.name as product_name,
+    cl.name as category_name,
+    pl.url,
+    pp.base_price,
+    pp.discount_percent,
+    pc.product_id,
+    c.iso,
+    pi.filename
+  FROM product_category pc
+  JOIN product_lang pl
+  ON pc.product_id = pl.product_id
+  JOIN product_image pi 
+  ON pi.product_id = pc.product_id
+  JOIN category_lang cl
+  ON pc.category_id = cl.category_id
+  JOIN product_price pp
+  ON pc.product_id = pp.product_id
+  JOIN product p
+  ON pc.product_id = p.id
+  JOIN currency c
+  ON c.id = pp.currency_id
+  WHERE cl.language_id = ?
+  AND pl.language_id = ?
+  AND pi.type = 'main'
+  AND p.manufacturer_id IN (?)
+  AND cl.url = ?
+    `,
+
+  getMetaCategory: `
+    SELECT category_id, name, description, meta_title, meta_keywords, meta_description FROM category_lang WHERE url = ? AND language_id = ?
+    `,
+  getMetaProduct: `
+  SELECT name, description, meta_title, meta_keywords, meta_description FROM product_lang WHERE url = ? AND language_id = ?
+  `,
+
+  getCharacteristicsByCategory: `
+  SELECT prc.category_id, prc.property_id, pl.name FROM property_rel_category prc
+  JOIN property_lang pl
+    ON pl.property_id = prc.property_id
+  WHERE prc.category_id IN (?)
+  AND prc.status = 'enabled'
+  AND pl.language_id = ?
+  `,
+
+  getAllProductCharacteristics: `
+  SELECT prpv.product_id, prpv.property_id, pvl.name FROM product_rel_property_value prpv
+JOIN property_value_lang pvl
+	ON pvl.property_value_id = prpv.property_value_id
+JOIN property_lang pl
+	ON pl.property_id = prpv.property_id
+WHERE prpv.product_id IN (?)
+AND prpv.status = 'enabled'
+AND pvl.language_id = ?
+AND pl.language_id = ?
+  `,
+
+  getAllCharacteristicsByCategoryUrl: `
+    SELECT DISTINCT prpv2.property_id, pl2.name FROM product_rel_property_value prpv2
+    JOIN property_lang pl2
+      ON pl2.property_id = prpv2.property_id
+    JOIN property_value_lang pvl2
+      ON pvl2.property_value_id = prpv2.property_value_id
+    JOIN product_lang pll2
+      ON pll2.product_id = prpv2.product_id
+    JOIN product_category pc2
+      ON pc2.product_id = pll2.product_id
+    JOIN category_lang cl
+      ON cl.category_id = pc2.category_id
+    WHERE prpv2.status = 'enabled'
+    AND cl.language_id = ?
+    AND pl2.language_id = ?
+    AND pll2.language_id = ?
+    AND pvl2.language_id = ?
+    AND cl.url = ? 
+    `,
+
+  getAllCharacteristicsValuesByCategoryUrl: `
+  SELECT DISTINCT pvl3.property_value_id, pvl3.name, prpv3.property_id FROM product_rel_property_value prpv3
+  JOIN property_lang pl3
+    ON pl3.property_id = prpv3.property_id
+  JOIN property_value_lang pvl3
+    ON pvl3.property_value_id = prpv3.property_value_id
+  JOIN product_lang pll3
+    ON pll3.product_id = prpv3.product_id
+  JOIN product_category pc
+    ON pc.product_id = pll3.product_id
+  JOIN category_lang cl3
+    ON cl3.category_id = pc.category_id
+  WHERE prpv3.status = 'enabled'
+    AND cl3.language_id = ?
+    AND pl3.language_id = ?
+    AND pll3.language_id = ?
+    AND pvl3.language_id = ?
+    AND cl3.url = ? 
+    `,
+
+  getAllManufacturersByCategoryUrl: `
+    SELECT DISTINCT ml.manufacturer_id, ml.name FROM manufacturer_lang ml
+    JOIN product p
+      ON p.manufacturer_id = ml.manufacturer_id
+    JOIN product_category pc 
+      ON pc.product_id = p.id
+    JOIN category_lang cl 
+      ON cl.category_id = pc.category_id
+    WHERE cl.url=?
+    `,
+
+  getRelationProductsForAllProductsInCategory: `
+    SELECT distinct
+    pl.name as product_name,
+    cl.name as category_name,
+    pl.url,
+    pp.base_price,
+    pp.discount_percent,
+    pc.product_id,
+    c.iso,
+    pi.filename
+  FROM product_category pc
+  JOIN product_lang pl
+  ON pc.product_id = pl.product_id
+  JOIN product_image pi 
+  ON pi.product_id = pc.product_id
+  JOIN category_lang cl
+  ON pc.category_id = cl.category_id
+  JOIN product_price pp
+  ON pc.product_id = pp.product_id
+  JOIN product p
+  ON pc.product_id = p.id
+  JOIN currency c
+  ON c.id = pp.currency_id
+  WHERE cl.language_id = ?
+  AND pl.language_id = ?
+  AND pi.type = 'main'
+  AND pc.product_id IN (
+    SELECT DISTINCT relation_product_id FROM product_lang pl
+JOIN product_rel_product prp
+	ON prp.product_id = pl.product_id
+JOIN product_category pc
+	ON pc.product_id = pl.product_id
+JOIN category_lang cl
+	ON cl.category_id = pc.category_id
+WHERE cl.url = ?
+  )
+    `,
+
+  getProductByUrl: `
+    SELECT distinct
+    pl.name as product_name,
+    cl.name as category_name,
+    pl.url,
+    pp.base_price,
+    pp.discount_percent,
+    pc.product_id,
+    c.iso,
+    pi.filename,
+    cl.category_id
+  FROM product_category pc
+  JOIN product_lang pl
+  ON pc.product_id = pl.product_id
+  JOIN product_image pi 
+  ON pi.product_id = pc.product_id
+  JOIN category_lang cl
+  ON pc.category_id = cl.category_id
+  JOIN product_price pp
+  ON pc.product_id = pp.product_id
+  JOIN product p
+  ON pc.product_id = p.id
+  JOIN currency c
+  ON c.id = pp.currency_id
+  WHERE cl.language_id = ?
+  AND pl.language_id = ?
+  AND pi.type = 'main'
+  AND pl.url = ?
     `,
 
   getProductsByCategory: `
@@ -346,10 +665,11 @@ AND pl.language_id = ?
     `,
 
   getAllNews: `
-    SELECT news_id, name, short_description, description, meta_title, t_created
-    FROM news, news_lang
-    WHERE news.id = news_lang.id AND language_id = ?
-    ORDER BY sort DESC
+  SELECT n.id, n.t_created, nl.url, nl.name, nl.short_description FROM news_lang nl
+  JOIN news n
+    ON n.id = nl.news_id
+  WHERE nl.language_id = ?
+  ORDER BY n.t_created DESC
     `,
 
   getOneNewById: `
@@ -436,7 +756,6 @@ AND cl.url = ?
 
   getProductCharacteristicsById: `
     SELECT DISTINCT 
-    prpv.product_id, 
     pl.name AS characteristic, 
     pvl.name AS value,
     p.guarantee,
@@ -451,31 +770,113 @@ AND cl.url = ?
     AND prpv.product_id = ?
 `,
 
+  getProductCharacteristicsByUrl: `
+  SELECT DISTINCT 
+  pl.name AS characteristic, 
+  pvl.name AS value,
+  p.guarantee,
+  pl.property_id
+  FROM product_rel_property_value prpv
+  JOIN property_value_lang pvl ON pvl.property_value_id = prpv.property_value_id
+  JOIN property_lang pl ON pl.property_id = prpv.property_id
+  JOIN product p ON p.id = prpv.product_id
+  JOIN product_lang pll
+  ON pll.product_id = p.id
+  WHERE pl.language_id = ?
+  AND pvl.language_id = ?
+  AND prpv.status LIKE 'enabled'
+  AND pll.url = ?
+`,
+
   getProductsPropertiesProducts: `
-    SELECT DISTINCT 
-      relation_product_id AS product_id, 
-      pl.name AS product_name, 
-      pl.description, 
-      pl.url, 
-      cl.name AS category_name,
-      pp.base_price,
-      pp.discount_percent,
-      c.iso,
-      cl.url as category_url,
-      cl.category_id
-    FROM product_rel_product prp
-    JOIN product_lang pl 
-    ON pl.product_id = prp.relation_product_id
-    JOIN product_category pc 
-    ON pc.product_id = prp.relation_product_id
-    JOIN product_price pp 
-    ON pp.product_id = prp.relation_product_id
-    JOIN category_lang cl 
-    ON cl.category_id = pc.category_id
-    JOIN currency c
-    ON c.id = pp.currency_id
-    WHERE pl.language_id = ?
-    AND cl.language_id = ?
+  SELECT DISTINCT 
+  relation_product_id AS product_id, 
+  pl.name AS product_name, 
+  pl.description, 
+  pl.url, 
+  cl.name AS category_name,
+  pp.base_price,
+  pp.discount_percent,
+  c.iso,
+  pi.filename
+FROM product_rel_product prp
+JOIN product_lang pl 
+JOIN product_image pi
+ON pl.product_id = pi.product_id
+ON pl.product_id = prp.relation_product_id
+JOIN product_category pc 
+ON pc.product_id = prp.relation_product_id
+JOIN product_price pp 
+ON pp.product_id = prp.relation_product_id
+JOIN category_lang cl 
+ON cl.category_id = pc.category_id
+JOIN currency c
+ON c.id = pp.currency_id
+WHERE pl.language_id = ?
+AND cl.language_id = ?
+AND pi.type = 'main'
+AND prp.product_id IN(?)
+`,
+
+  getProductsPropertiesProductsByUrl: `
+  SELECT DISTINCT 
+  relation_product_id AS product_id, 
+  pl.name AS product_name, 
+  pl.description, 
+  pl.url, 
+  cl.name AS category_name,
+  pp.base_price,
+  pp.discount_percent,
+  c.iso,
+  pi.filename
+FROM product_rel_product prp
+JOIN product_lang pl 
+JOIN product_image pi
+ON pl.product_id = pi.product_id
+ON pl.product_id = prp.relation_product_id
+JOIN product_category pc 
+ON pc.product_id = prp.relation_product_id
+JOIN product_price pp 
+ON pp.product_id = prp.relation_product_id
+JOIN category_lang cl 
+ON cl.category_id = pc.category_id
+JOIN currency c
+ON c.id = pp.currency_id
+WHERE pl.language_id = ?
+AND cl.language_id = ?
+AND pi.type = 'main'
+AND prp.product_id IN(
+	SELECT product_id FROM product_lang pl WHERE pl.url = ?
+)
+`,
+
+  getPropertiesProductsByIds: `
+SELECT DISTINCT 
+relation_product_id AS product_id, 
+pl.name AS product_name, 
+pl.url, 
+cl.name AS category_name,
+pp.base_price,
+pp.discount_percent,
+c.iso,
+pi.filename
+FROM product_rel_product prp
+JOIN product_lang pl 
+JOIN product_image pi
+ON pl.product_id = pi.product_id
+ON pl.product_id = prp.relation_product_id
+JOIN product_category pc 
+ON pc.product_id = prp.relation_product_id
+JOIN product_price pp 
+ON pp.product_id = prp.relation_product_id
+JOIN category_lang cl 
+ON cl.category_id = pc.category_id
+JOIN currency c
+ON c.id = pp.currency_id
+WHERE pl.language_id = ?
+AND cl.language_id = ?
+AND pi.type = 'main'
+AND prp.product_id IN(?)
 `,
 
   getAllProductPhotosById: `
